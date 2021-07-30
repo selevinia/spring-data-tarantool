@@ -1,0 +1,23 @@
+integration-app.router1:
+  advertise_uri: tarantool-router-1:3301
+  http_port: 8081
+
+integration-app.router2:
+  advertise_uri: tarantool-router-2:3301
+  http_port: 8081
+
+integration-app.s1-master:
+  advertise_uri: tarantool-s1-master:3301
+  http_enabled: false
+
+integration-app.s1-replica:
+  advertise_uri: tarantool-s1-replica:3301
+  http_enabled: false
+
+integration-app.s2-master:
+  advertise_uri: tarantool-s2-master:3301
+  http_enabled: false
+
+integration-app.s2-replica:
+  advertise_uri: tarantool-s2-replica:3301
+  http_enabled: false

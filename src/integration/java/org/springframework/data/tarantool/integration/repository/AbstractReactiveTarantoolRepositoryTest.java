@@ -1,0 +1,299 @@
+package org.springframework.data.tarantool.integration.repository;
+
+import io.tarantool.driver.api.conditions.Conditions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.tarantool.core.ReactiveTarantoolOperations;
+import org.springframework.data.tarantool.integration.domain.*;
+import org.springframework.data.tarantool.repository.Query;
+import org.springframework.data.tarantool.repository.ReactiveTarantoolRepository;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * Class contains all test methods for Tarantool reactive repository usage
+ */
+public abstract class AbstractReactiveTarantoolRepositoryTest {
+
+    @Autowired
+    protected UserRepository userRepository;
+
+    @Autowired
+    protected DistributedUserRepository distributedUserRepository;
+
+    @Autowired
+    protected TranslatedArticleRepository translatedArticleRepository;
+
+    @Autowired
+    protected ReactiveTarantoolOperations operations;
+
+    @BeforeEach
+    void cleanup() {
+        operations.delete(Conditions.any(), User.class).then().as(StepVerifier::create).verifyComplete();
+    }
+
+    @Test
+    void shouldNotFindNotExisted() {
+        userRepository.findById(UUID.randomUUID()).as(StepVerifier::create)
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldDoSaveAndFindById() {
+        User user = newUser();
+        userRepository.save(user).as(StepVerifier::create)
+                .expectNext(user)
+                .verifyComplete();
+
+        userRepository.findById(user.getId()).as(StepVerifier::create)
+                .assertNext(actual -> {
+                    assertThat(actual.getId()).isEqualTo(user.getId());
+                    assertThat(actual.getVersion()).isEqualTo(0L);
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldUpdateVersionedEntity() {
+        User user = newUser();
+        userRepository.save(user)
+                .map(u -> {
+                    u.setFirstName("New FirstName");
+                    return u;
+                })
+                .flatMap(u -> userRepository.save(u))
+                .as(StepVerifier::create)
+                .assertNext(actual -> {
+                    assertThat(actual.getId()).isEqualTo(user.getId());
+                    assertThat(actual.getVersion()).isEqualTo(1L);
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldDoExists() {
+        User user = newUser();
+        userRepository.save(user).as(StepVerifier::create)
+                .expectNext(user)
+                .verifyComplete();
+
+        userRepository.existsById(user.getId()).as(StepVerifier::create)
+                .expectNext(true)
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldDoDelete() {
+        User user = newUser();
+        userRepository.save(user).as(StepVerifier::create)
+                .expectNext(user)
+                .verifyComplete();
+
+        userRepository.delete(user).then().as(StepVerifier::create)
+                .verifyComplete();
+
+        userRepository.existsById(user.getId()).as(StepVerifier::create)
+                .expectNext(false)
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldDoDeleteById() {
+        User user = newUser();
+        userRepository.save(user).as(StepVerifier::create)
+                .expectNext(user)
+                .verifyComplete();
+
+        userRepository.deleteById(user.getId()).then().as(StepVerifier::create)
+                .verifyComplete();
+
+        userRepository.existsById(user.getId()).as(StepVerifier::create)
+                .expectNext(false)
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldFindAll() {
+        for (int i = 0; i < 4; i++) {
+            User user = newUser();
+            userRepository.save(user).as(StepVerifier::create)
+                    .expectNext(user)
+                    .verifyComplete();
+        }
+
+        userRepository.findAll().as(StepVerifier::create)
+                .expectNextCount(4L)
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldNotFindAll() {
+        for (int i = 0; i < 4; i++) {
+            User user = newUser();
+            userRepository.save(user).as(StepVerifier::create)
+                    .expectNext(user)
+                    .verifyComplete();
+        }
+
+        userRepository.findAllById(List.of(UUID.randomUUID())).as(StepVerifier::create)
+                .expectNextCount(0L)
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldDoCount() {
+        for (int i = 0; i < 4; i++) {
+            User user = newUser();
+            userRepository.save(user).as(StepVerifier::create)
+                    .expectNext(user)
+                    .verifyComplete();
+        }
+
+        userRepository.count().as(StepVerifier::create)
+                .expectNext(4L)
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldFindByLastNameUsingQuery() {
+        for (int i = 0; i < 4; i++) {
+            User user = newUser();
+            userRepository.save(user).as(StepVerifier::create)
+                    .expectNext(user)
+                    .verifyComplete();
+        }
+
+        userRepository.findUsersByLastName("Kuzin").as(StepVerifier::create)
+                .expectNextCount(4)
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldCountByLastNameUsingQuery() {
+        for (int i = 0; i < 4; i++) {
+            User user = newUser();
+            userRepository.save(user).as(StepVerifier::create)
+                    .expectNext(user)
+                    .verifyComplete();
+        }
+
+        userRepository.countUsersByLastName("Kuzin").as(StepVerifier::create)
+                .expectNext(4L)
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldFindByEntityUsingQuery() {
+        User user = newUser();
+        userRepository.save(user).as(StepVerifier::create)
+                .expectNext(user)
+                .verifyComplete();
+
+        userRepository.findOneUser(user).as(StepVerifier::create)
+                .assertNext(actual -> {
+                    assertThat(actual.getId()).isEqualTo(user.getId());
+                    assertThat(actual.getFirstName()).isEqualTo(user.getFirstName());
+                    assertThat(actual.getLastName()).isEqualTo(user.getLastName());
+                    assertThat(actual.getEmail()).isEqualTo(user.getEmail());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldDoSaveAndFindByIdEntityWithCompositePrimaryKey() {
+        TranslatedArticle article = newTranslatedArticle();
+        translatedArticleRepository.save(article).as(StepVerifier::create)
+                .expectNextCount(1)
+                .verifyComplete();
+
+        translatedArticleRepository.findById(article.getId()).as(StepVerifier::create)
+                .assertNext(actual -> {
+                    assertThat(actual.getId()).isEqualTo(article.getId());
+                    assertThat(actual.getName()).isEqualTo(article.getName());
+                    assertThat(actual.getText()).isEqualTo(article.getText());
+                })
+                .verifyComplete();
+    }
+
+    protected User newUser() {
+        return User.builder()
+                .id(UUID.randomUUID())
+                .firstName("Alexey")
+                .lastName("Kuzin")
+                .birthDate(LocalDate.now().minusYears(24))
+                .age(24)
+                .active(true)
+                .email("akuzin@mail.ru")
+                .address(Address.builder()
+                        .city("Kandalaksha")
+                        .street("Lenina 12-2")
+                        .postcode("123456")
+                        .build())
+                .build();
+    }
+
+    protected User newVersionedUser() {
+        User user = newUser();
+        user.setVersion(0L);
+        return user;
+    }
+
+    protected DistributedUser newDistributedUser() {
+        return DistributedUser.distributedBuilder()
+                .id(UUID.randomUUID())
+                .firstName("Alexey")
+                .lastName("Kuzin")
+                .birthDate(LocalDate.now().minusYears(24))
+                .age(24)
+                .active(true)
+                .email("akuzin@mail.ru")
+                .address(Address.builder()
+                        .city("Kandalaksha")
+                        .street("Lenina 12-2")
+                        .postcode("123456")
+                        .build())
+                .build();
+    }
+
+    protected TranslatedArticle newTranslatedArticle() {
+        return TranslatedArticle.builder()
+                .id(
+                        TranslatedArticleKey.builder()
+                                .articleId(UUID.randomUUID())
+                                .locale(Locale.ENGLISH)
+                                .build()
+                )
+                .name("Selevinia eats tarantool")
+                .build();
+    }
+
+    interface UserRepository extends ReactiveTarantoolRepository<User, UUID> {
+
+        @Query(function = "find_user_by_user")
+        Flux<User> findOneUser(User user);
+
+        @Query(function = "find_users_by_last_name")
+        Flux<User> findUsersByLastName(String lastName);
+
+        @Query(function = "count_users_by_last_name")
+        Mono<Long> countUsersByLastName(String lastName);
+
+        @Query(function = "upload_users")
+        Mono<Long> uploadUsers(List<User> users);
+    }
+
+    interface DistributedUserRepository extends ReactiveTarantoolRepository<DistributedUser, UUID> {
+    }
+
+    interface TranslatedArticleRepository extends ReactiveTarantoolRepository<TranslatedArticle, TranslatedArticleKey> {
+    }
+}

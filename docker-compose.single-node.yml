@@ -1,0 +1,12 @@
+version: '2.1'
+services:
+
+  tarantool:
+    container_name: tarantool
+    build: docker/tarantool
+    hostname: tarantool
+    environment:
+      TARANTOOL_USER_NAME: admin
+      TARANTOOL_USER_PASSWORD: admin
+    ports:
+      - 3303:3301

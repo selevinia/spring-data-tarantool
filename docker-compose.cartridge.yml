@@ -1,0 +1,56 @@
+version: '2.1'
+services:
+
+  tarantool-router-1:
+    container_name: tarantool-router-1
+    build: docker/tarantool-cartrige
+    hostname: tarantool-router-1
+    environment:
+      INSTANCE_NAME: router1
+      CLUSTER_NAME: integration-app
+    ports:
+      - 3301:3301
+      - 8081:8081
+
+  tarantool-router-2:
+    container_name: tarantool-router-2
+    build: docker/tarantool-cartrige
+    hostname: tarantool-router-2
+    environment:
+      INSTANCE_NAME: router2
+      CLUSTER_NAME: integration-app
+    ports:
+      - 3302:3301
+      - 8082:8081
+
+  tarantool-s1-master:
+    container_name: tarantool-s1-master
+    build: docker/tarantool-cartrige
+    hostname: tarantool-s1-master
+    environment:
+      INSTANCE_NAME: s1-master
+      CLUSTER_NAME: integration-app
+
+  tarantool-s1-replica:
+    container_name: tarantool-s1-replica
+    build: docker/tarantool-cartrige
+    hostname: tarantool-s1-replica
+    environment:
+      INSTANCE_NAME: s1-replica
+      CLUSTER_NAME: integration-app
+
+  tarantool-s2-master:
+    container_name: tarantool-s2-master
+    build: docker/tarantool-cartrige
+    hostname: tarantool-s2-master
+    environment:
+      INSTANCE_NAME: s2-master
+      CLUSTER_NAME: integration-app
+
+  tarantool-s2-replica:
+    container_name: tarantool-s2-replica
+    build: docker/tarantool-cartrige
+    hostname: tarantool-s2-replica
+    environment:
+      INSTANCE_NAME: s2-replica
+      CLUSTER_NAME: integration-app
