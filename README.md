@@ -21,6 +21,25 @@ from [Project Reactor](https://projectreactor.io/) like Spring WebFlux do.
 | :----------- | :----: |
 | 0.1.x | 1.10.x, 2.x
 
+## How to use in your project
+
+To add Spring Data Tarantool to a Maven-based project, add the following dependency:
+```maven
+<dependencies>
+	<dependency>
+		<groupId>io.github.selevinia</groupId>
+		<artifactId>spring-data-tarantool</artifactId>
+	</dependency>
+</dependencies>
+```
+
+For Gradle, use the following declaration:
+```gradle
+dependencies {
+    implementation 'io.github.selevinia:spring-data-tarantool'
+}
+```
+
 ## Getting Started
 Prepare Tarantool objects:
 ```lua
