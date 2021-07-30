@@ -1,6 +1,6 @@
 group = "io.github.selevinia"
 version = "0.1.0"
-description = "Reactive Spring Data module for Tarantool"
+description = "Reactive Spring Data module for Tarantool Database"
 
 plugins {
     `java-library`
