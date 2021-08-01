@@ -29,6 +29,7 @@ To add Spring Data Tarantool to a Maven-based project, add the following depende
 	<dependency>
 		<groupId>io.github.selevinia</groupId>
 		<artifactId>spring-data-tarantool</artifactId>
+		<version>${version}</version>
 	</dependency>
 </dependencies>
 ```
