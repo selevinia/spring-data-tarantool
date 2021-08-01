@@ -37,7 +37,7 @@ To add Spring Data Tarantool to a Maven-based project, add the following depende
 For Gradle, use the following declaration:
 ```gradle
 dependencies {
-    implementation 'io.github.selevinia:spring-data-tarantool'
+    implementation "io.github.selevinia:spring-data-tarantool:$version"
 }
 ```
 
