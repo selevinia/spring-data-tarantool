@@ -1,5 +1,6 @@
 package org.springframework.data.tarantool.repository.support;
 
+import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.data.mapping.context.MappingContext;
 import org.springframework.data.repository.Repository;
@@ -8,14 +9,15 @@ import org.springframework.data.repository.core.support.RepositoryFactorySupport
 import org.springframework.data.repository.query.QueryMethodEvaluationContextProvider;
 import org.springframework.data.repository.query.ReactiveExtensionAwareQueryMethodEvaluationContextProvider;
 import org.springframework.data.tarantool.core.ReactiveTarantoolOperations;
+import org.springframework.data.tarantool.repository.ReactiveTarantoolRepository;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 import java.util.Optional;
 
 /**
- * {@link org.springframework.beans.factory.FactoryBean} to create
- * {@link org.springframework.data.tarantool.repository.ReactiveTarantoolRepository} instances.
+ * {@link FactoryBean} to create
+ * {@link ReactiveTarantoolRepository} instances.
  *
  * @author Alexander Rublev
  */

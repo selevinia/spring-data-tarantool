@@ -1,11 +1,12 @@
 package org.springframework.data.tarantool.repository;
 
 import org.springframework.data.repository.NoRepositoryBean;
+import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import reactor.core.publisher.Flux;
 
 /**
- * Tarantool specific {@link org.springframework.data.repository.Repository} interface with reactive support.
+ * Tarantool specific {@link Repository} interface with reactive support.
  *
  * @author Alexander Rublev
  */

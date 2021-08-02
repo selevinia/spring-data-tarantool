@@ -4,18 +4,16 @@ import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.repository.config.DefaultRepositoryBaseClass;
 import org.springframework.data.repository.query.QueryLookupStrategy;
-import org.springframework.data.tarantool.core.ReactiveTarantoolTemplate;
-import org.springframework.data.tarantool.repository.support.ReactiveTarantoolRepositoryFactoryBean;
+import org.springframework.data.tarantool.core.TarantoolTemplate;
+import org.springframework.data.tarantool.repository.support.TarantoolRepositoryFactoryBean;
 
 import java.lang.annotation.*;
 
-import static org.springframework.context.annotation.ComponentScan.*;
-import static org.springframework.data.repository.query.QueryLookupStrategy.*;
+import static org.springframework.context.annotation.ComponentScan.Filter;
+import static org.springframework.data.repository.query.QueryLookupStrategy.Key;
 
 /**
- * Annotation to activate reactive Tarantool repositories. If no base package is configured through either
- * {@link #value()}, {@link #basePackages()} or {@link #basePackageClasses()} it will trigger scanning of the package of
- * annotated class.
+ * Annotation to enable Tarantool repositories.
  *
  * @author Alexander Rublev
  */
@@ -23,8 +21,8 @@ import static org.springframework.data.repository.query.QueryLookupStrategy.*;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
-@Import(ReactiveTarantoolRepositoriesRegistrar.class)
-public @interface EnableReactiveTarantoolRepositories {
+@Import(TarantoolRepositoriesRegistrar.class)
+public @interface EnableTarantoolRepositories {
 
     /**
      * Alias for the {@link #basePackages()} attribute. Allows for more concise annotation declarations e.g.:
@@ -77,9 +75,9 @@ public @interface EnableReactiveTarantoolRepositories {
 
     /**
      * Returns the {@link FactoryBean} class to be used for each repository instance. Defaults to
-     * {@link ReactiveTarantoolRepositoryFactoryBean}.
+     * {@link TarantoolRepositoryFactoryBean}.
      */
-    Class<?> repositoryFactoryBeanClass() default ReactiveTarantoolRepositoryFactoryBean.class;
+    Class<?> repositoryFactoryBeanClass() default TarantoolRepositoryFactoryBean.class;
 
     /**
      * Configure the repository base class to be used to create repository proxies for this particular configuration.
@@ -87,15 +85,14 @@ public @interface EnableReactiveTarantoolRepositories {
     Class<?> repositoryBaseClass() default DefaultRepositoryBaseClass.class;
 
     /**
-     * Configures the name of the {@link ReactiveTarantoolTemplate} bean to be
+     * Configures the name of the {@link TarantoolTemplate} bean to be
      * used with the repositories detected.
      */
-    String reactiveTarantoolTemplateRef() default "reactiveTarantoolTemplate";
+    String tarantoolTemplateRef() default "tarantoolTemplate";
 
     /**
      * Configures whether nested repository-interfaces (e.g. defined as inner classes) should be discovered by the
      * repositories infrastructure.
      */
     boolean considerNestedRepositories() default false;
-
 }

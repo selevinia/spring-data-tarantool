@@ -10,8 +10,10 @@ import org.springframework.data.tarantool.core.mapping.TarantoolPersistentProper
  * Basic Tarantool entity-to-tuple converter interface
  *
  * @author Tatiana Blinova
+ * @author Alexander Rublev
  */
 public interface TarantoolConverter extends EntityConverter<TarantoolPersistentEntity<?>, TarantoolPersistentProperty, Object, Object> {
+
     /**
      * Return the custom conversions
      *
@@ -29,4 +31,15 @@ public interface TarantoolConverter extends EntityConverter<TarantoolPersistentE
      * @return the result of the conversion
      */
     Object convertToWritableType(Object source);
+
+    /**
+     * Create new default TarantoolConverter
+     * @return default TarantoolConverter
+     */
+    static TarantoolConverter newConverter() {
+        MappingTarantoolConverter converter = new MappingTarantoolConverter();
+        converter.afterPropertiesSet();
+        return converter;
+    }
+
 }

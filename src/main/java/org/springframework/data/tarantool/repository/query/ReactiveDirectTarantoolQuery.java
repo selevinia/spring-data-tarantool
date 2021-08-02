@@ -13,6 +13,7 @@ import reactor.core.publisher.Flux;
  * @author Alexander Rublev
  */
 public class ReactiveDirectTarantoolQuery extends TarantoolRepositoryQuerySupport {
+    private final ReactiveTarantoolOperations operations;
 
     /**
      * Create a new {@link ReactiveDirectTarantoolQuery} from the given {@link TarantoolQueryMethod} and
@@ -22,7 +23,8 @@ public class ReactiveDirectTarantoolQuery extends TarantoolRepositoryQuerySuppor
      * @param operations  must not be {@literal null}.
      */
     public ReactiveDirectTarantoolQuery(TarantoolQueryMethod queryMethod, ReactiveTarantoolOperations operations) {
-        super(queryMethod, operations);
+        super(queryMethod, operations.getConverter());
+        this.operations = operations;
     }
 
     @Nullable
@@ -41,9 +43,9 @@ public class ReactiveDirectTarantoolQuery extends TarantoolRepositoryQuerySuppor
      */
     public DirectTarantoolQueryExecution getExecution() {
         if (getQueryMethod().isCollectionQuery()) {
-            return new DirectTarantoolQueryExecution.CollectionExecution(getOperations());
+            return new DirectTarantoolQueryExecution.CollectionExecution(operations);
         } else {
-            return new DirectTarantoolQueryExecution.SingleEntityExecution(getOperations());
+            return new DirectTarantoolQueryExecution.SingleEntityExecution(operations);
         }
     }
 

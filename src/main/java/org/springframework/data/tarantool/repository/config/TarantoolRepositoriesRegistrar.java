@@ -8,18 +8,18 @@ import java.lang.annotation.Annotation;
 
 /**
  * {@link ImportBeanDefinitionRegistrar} to setup Tarantool repositories via
- * {@link EnableReactiveTarantoolRepositories}.
+ * {@link EnableTarantoolRepositories}.
  *
  * @author Alexander Rublev
  */
-public class ReactiveTarantoolRepositoriesRegistrar extends RepositoryBeanDefinitionRegistrarSupport {
+public class TarantoolRepositoriesRegistrar extends RepositoryBeanDefinitionRegistrarSupport {
 
     /**
      * @see RepositoryBeanDefinitionRegistrarSupport#getAnnotation()
      */
     @Override
     protected Class<? extends Annotation> getAnnotation() {
-        return EnableReactiveTarantoolRepositories.class;
+        return EnableTarantoolRepositories.class;
     }
 
     /**
@@ -27,6 +27,6 @@ public class ReactiveTarantoolRepositoriesRegistrar extends RepositoryBeanDefini
      */
     @Override
     protected RepositoryConfigurationExtension getExtension() {
-        return new ReactiveTarantoolRepositoryConfigurationExtension();
+        return new TarantoolRepositoryConfigurationExtension();
     }
 }

@@ -17,6 +17,7 @@ import reactor.core.publisher.Flux;
  * @author Alexander Rublev
  */
 public class ReactivePartTreeTarantoolQuery extends TarantoolRepositoryQuerySupport {
+    private final ReactiveTarantoolOperations operations;
     private final TarantoolConverter converter;
     private final PartTree tree;
 
@@ -29,7 +30,8 @@ public class ReactivePartTreeTarantoolQuery extends TarantoolRepositoryQuerySupp
      */
     public ReactivePartTreeTarantoolQuery(TarantoolQueryMethod queryMethod,
                                           ReactiveTarantoolOperations operations) {
-        super(queryMethod, operations);
+        super(queryMethod, operations.getConverter());
+        this.operations = operations;
         this.converter = operations.getConverter();
         this.tree = new PartTree(queryMethod.getName(), queryMethod.getResultProcessor().getReturnedType().getDomainType());
     }
@@ -39,7 +41,7 @@ public class ReactivePartTreeTarantoolQuery extends TarantoolRepositoryQuerySupp
     public Object execute(Object[] parameters) {
         final Class<?> type = getQueryMethod().getResultProcessor().getReturnedType().getDomainType();
         ParametersParameterAccessor parameterAccessor = new ParametersParameterAccessor(getQueryMethod().getParameters(), parameters);
-        TarantoolQueryCreator queryCreator = new TarantoolQueryCreator(tree, parameterAccessor, converter, getOperations().isProxyClient());
+        TarantoolQueryCreator queryCreator = new TarantoolQueryCreator(tree, parameterAccessor, converter, operations.isProxyClient());
 
         try {
             Query query = queryCreator.createQuery();
@@ -56,15 +58,15 @@ public class ReactivePartTreeTarantoolQuery extends TarantoolRepositoryQuerySupp
      */
     public PartTreeTarantoolQueryExecution getExecution() {
         if (tree.isCountProjection()) {
-            return new PartTreeTarantoolQueryExecution.CountExecution(getOperations());
+            return new PartTreeTarantoolQueryExecution.CountExecution(operations);
         } else if (tree.isExistsProjection()) {
-            return new PartTreeTarantoolQueryExecution.ExistsExecution(getOperations());
+            return new PartTreeTarantoolQueryExecution.ExistsExecution(operations);
         } else if (tree.isDelete()) {
-            return new PartTreeTarantoolQueryExecution.DeleteExecution(getOperations());
+            return new PartTreeTarantoolQueryExecution.DeleteExecution(operations);
         } else if (getQueryMethod().isCollectionQuery()) {
-            return new PartTreeTarantoolQueryExecution.CollectionExecution(getOperations());
+            return new PartTreeTarantoolQueryExecution.CollectionExecution(operations);
         } else {
-            return new PartTreeTarantoolQueryExecution.SingleEntityExecution(getOperations());
+            return new PartTreeTarantoolQueryExecution.SingleEntityExecution(operations);
         }
     }
 

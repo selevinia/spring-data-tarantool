@@ -12,8 +12,11 @@ import org.springframework.util.Assert;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.Collections;
-
+/**
+ * Reactive repository base implementation for Tarantool.
+ *
+ * @author Alexander Rublev
+ */
 public class SimpleReactiveTarantoolRepository<T, ID> implements ReactiveTarantoolRepository<T, ID> {
     private final TarantoolEntityInformation<T, ID> entityInformation;
     private final ReactiveTarantoolOperations operations;

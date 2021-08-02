@@ -8,29 +8,24 @@ import io.tarantool.driver.api.conditions.Conditions;
 import io.tarantool.driver.api.space.TarantoolSpaceOperations;
 import io.tarantool.driver.api.tuple.TarantoolNullField;
 import io.tarantool.driver.api.tuple.TarantoolTuple;
-import io.tarantool.driver.api.tuple.TarantoolTupleImpl;
 import io.tarantool.driver.api.tuple.operations.TupleOperations;
 import io.tarantool.driver.exceptions.TarantoolSpaceOperationException;
 import io.tarantool.driver.mappers.MessagePackMapper;
 import io.tarantool.driver.mappers.TarantoolTupleSingleResultMapperFactory;
 import io.tarantool.driver.mappers.ValueConverter;
 import io.tarantool.driver.metadata.TarantoolSpaceMetadata;
-import io.tarantool.driver.protocol.TarantoolIndexQuery;
 import org.msgpack.value.Value;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataRetrievalFailureException;
 import org.springframework.data.mapping.MappingException;
 import org.springframework.data.mapping.callback.EntityCallbacks;
 import org.springframework.data.mapping.callback.ReactiveEntityCallbacks;
-import org.springframework.data.mapping.model.ConvertingPropertyAccessor;
-import org.springframework.data.tarantool.core.convert.MappingTarantoolConverter;
 import org.springframework.data.tarantool.core.convert.TarantoolConverter;
-import org.springframework.data.tarantool.core.mapping.MapId;
 import org.springframework.data.tarantool.core.mapping.TarantoolPersistentEntity;
-import org.springframework.data.tarantool.core.mapping.TarantoolPersistentProperty;
 import org.springframework.data.tarantool.core.mapping.TarantoolSimpleTypeHolder;
 import org.springframework.data.tarantool.core.mapping.event.ReactiveBeforeConvertCallback;
 import org.springframework.data.tarantool.core.mapping.event.ReactiveBeforeSaveCallback;
@@ -51,6 +46,7 @@ import java.util.function.Supplier;
  * Primary implementation of {@link ReactiveTarantoolOperations}
  *
  * @author Tatiana Blinova
+ * @author Alexander Rublev
  */
 public class ReactiveTarantoolTemplate implements ApplicationContextAware, ReactiveTarantoolOperations {
 
@@ -63,11 +59,12 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
     private final TarantoolConverter tarantoolConverter;
     private final TarantoolExceptionTranslator exceptionTranslator;
     private final MessagePackMapper messagePackMapper;
+    private final IndexQueryCreator indexQueryCreator;
     private @Nullable
     ReactiveEntityCallbacks entityCallbacks;
 
     public ReactiveTarantoolTemplate(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient) {
-        this(tarantoolClient, newTarantoolConverter(), new DefaultTarantoolExceptionTranslator());
+        this(tarantoolClient, TarantoolConverter.newConverter(), new DefaultTarantoolExceptionTranslator());
     }
 
     public ReactiveTarantoolTemplate(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
@@ -77,6 +74,7 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
         this.tarantoolConverter = tarantoolConverter;
         this.exceptionTranslator = exceptionTranslator;
         this.messagePackMapper = tarantoolClient.getConfig().getMessagePackMapper();
+        this.indexQueryCreator = new IndexQueryCreator(tarantoolConverter, this);
     }
 
     @Override
@@ -112,27 +110,13 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
     }
 
     @Override
+    public TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> getClient() {
+        return tarantoolClient;
+    }
+
+    @Override
     public TarantoolConverter getConverter() {
         return tarantoolConverter;
-    }
-
-    @Override
-    public TarantoolVersion getVersion() {
-        try {
-            return tarantoolClient.getVersion();
-        } catch (Exception e) {
-            DataAccessException exception = exceptionTranslator.translateExceptionIfPossible((RuntimeException) e);
-            if (exception != null) {
-                throw exception;
-            } else {
-                throw e;
-            }
-        }
-    }
-
-    @Override
-    public boolean isProxyClient() {
-        return tarantoolClient instanceof ProxyTarantoolClient;
     }
 
     @Override
@@ -140,7 +124,7 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
         Assert.notNull(id, "Id must not be null");
         Assert.notNull(entityClass, "Entity class must not be null");
 
-        Conditions query = primaryIndexQueryById(id, entityClass);
+        Conditions query = indexQueryCreator.primaryIndexQueryById(id, entityClass);
         return selectOne(query, entityClass);
     }
 
@@ -205,9 +189,10 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
         T entityToUse = source.isVersionedEntity() ? source.initializeVersionProperty() : entity;
 
         String spaceName = spaceName(entityClass);
+        TarantoolSpaceMetadata spaceMetadata = spaceMetadata(entityClass).orElseThrow(() -> new MappingException(String.format("Space metadata not found for space %s", spaceName)));
         return maybeCallBeforeConvert(entityToUse, spaceName)
                 .flatMap(ent -> {
-                    TarantoolTuple tuple = entityToTuple(ent, spaceName);
+                    TarantoolTuple tuple = entityToTuple(ent, messagePackMapper, spaceMetadata);
                     return maybeCallBeforeSave(ent, tuple, spaceName)
                             .map(e -> tuple);
                 })
@@ -223,9 +208,10 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
 
         T entityToUse = entityToUpdate(entity);
         String spaceName = spaceName(entityClass);
+        TarantoolSpaceMetadata spaceMetadata = spaceMetadata(entityClass).orElseThrow(() -> new MappingException(String.format("Space metadata not found for space %s", spaceName)));
         return maybeCallBeforeConvert(entityToUse, spaceName)
                 .flatMap(ent -> {
-                    TarantoolTuple tuple = entityToTuple(ent, spaceName);
+                    TarantoolTuple tuple = entityToTuple(ent, messagePackMapper, spaceMetadata);
                     return maybeCallBeforeSave(ent, tuple, spaceName)
                             .map(e -> tuple);
                 })
@@ -242,9 +228,10 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
 
         T entityToUse = entityToUpdate(entity);
         String spaceName = spaceName(entityClass);
+        TarantoolSpaceMetadata spaceMetadata = spaceMetadata(entityClass).orElseThrow(() -> new MappingException(String.format("Space metadata not found for space %s", spaceName)));
         return maybeCallBeforeConvert(entityToUse, spaceName)
                 .flatMap(ent -> {
-                    TarantoolTuple tuple = entityToTuple(ent, spaceName);
+                    TarantoolTuple tuple = entityToTuple(ent, messagePackMapper, spaceMetadata);
                     return maybeCallBeforeSave(ent, tuple, spaceName)
                             .map(e -> tuple);
                 })
@@ -267,7 +254,7 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
                                 .flatMapIterable(tuples -> tuples)
                                 .parallel(TARANTOOL_DEFAULT_POOL_SIZE)
                                 .runOn(TARANTOOL_PARALLEL_SCHEDULER)
-                                .map(tuple -> primaryIndexQuery(tuple, entityClass))
+                                .map(tuple -> indexQueryCreator.primaryIndexQuery(tuple, entityClass))
                                 .flatMap(conditions -> execute(spaceName, spaceOps -> spaceOps.update(conditions, tupleOperations)))
                                 .filter(tuples -> tuples.size() > 0)
                                 .map(tuples -> tupleToEntity(tuples.get(0), entityClass))
@@ -289,7 +276,7 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
         Assert.notNull(entity, "Entity must not be null");
         Assert.notNull(entityClass, "Entity class must not be null");
 
-        Conditions query = primaryIndexQuery(entity);
+        Conditions query = indexQueryCreator.primaryIndexQuery(entity);
         return execute(entityClass, spaceOps -> spaceOps.delete(query))
                 .filter(tuples -> tuples.size() > 0)
                 .map(tuples -> tupleToEntity(tuples.get(0), entityClass));
@@ -306,7 +293,7 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
                 .flatMapIterable(tuples -> tuples)
                 .parallel(TARANTOOL_DEFAULT_POOL_SIZE)
                 .runOn(TARANTOOL_PARALLEL_SCHEDULER)
-                .map(tuple -> primaryIndexQuery(tuple, entityClass))
+                .map(tuple -> indexQueryCreator.primaryIndexQuery(tuple, entityClass))
                 .flatMap(conditions -> execute(spaceName, spaceOps -> spaceOps.delete(conditions)))
                 .filter(tuples -> tuples.size() > 0)
                 .map(tuples -> tupleToEntity(tuples.get(0), entityClass))
@@ -318,7 +305,7 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
         Assert.notNull(id, "Id must not be null");
         Assert.notNull(entityClass, "Entity class must not be null");
 
-        Conditions query = primaryIndexQueryById(id, entityClass);
+        Conditions query = indexQueryCreator.primaryIndexQueryById(id, entityClass);
         return execute(entityClass, spaceOps -> spaceOps.delete(query))
                 .filter(tuples -> tuples.size() > 0)
                 .map(tuples -> tupleToEntity(tuples.get(0), entityClass));
@@ -328,7 +315,6 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
     public <T> Mono<Boolean> truncate(Class<T> entityClass) {
         Assert.notNull(entityClass, "Entity class must not be null");
 
-        // TODO truncate() not implemented yet in driver
         if (isProxyClient()) {
             String spaceName = spaceName(entityClass);
             return execute(() -> tarantoolClient.callForSingleResult("crud.truncate", Collections.singletonList(spaceName), Boolean.class))
@@ -362,7 +348,8 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
         Optional<TarantoolSpaceMetadata> spaceMetadata = spaceMetadata(entityClass);
         if (spaceMetadata.isPresent()) {
             TarantoolTupleSingleResultMapperFactory resultMapperFactory = tarantoolClient.getResultMapperFactoryFactory().defaultTupleSingleResultMapperFactory();
-            return execute(() -> tarantoolClient.callForSingleResult(functionName, mappedTValues(parameters), messagePackMapper, resultMapperFactory.withDefaultTupleValueConverter(messagePackMapper, spaceMetadata.orElse(null))))
+            return execute(() -> tarantoolClient.callForSingleResult(functionName, mappedTValues(parameters), messagePackMapper,
+                    resultMapperFactory.withDefaultTupleValueConverter(messagePackMapper, spaceMetadata.orElse(null))))
                     .filter(tuples -> tuples.size() > 0)
                     .map(tuples -> tupleToEntity(tuples.get(0), entityClass));
         } else {
@@ -448,12 +435,9 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
         return callForAll(functionName, Collections.emptyList(), entityConverter);
     }
 
-    private <T> String spaceName(Class<T> entityClass) {
-        return tarantoolConverter.getMappingContext().getRequiredPersistentEntity(entityClass).getSpaceName();
-    }
-
-    private TarantoolSpaceOperations<TarantoolTuple, TarantoolResult<TarantoolTuple>> spaceOps(String spaceName) {
-        return tarantoolClient.space(spaceName);
+    @Override
+    public TarantoolVersion getVersion() {
+        return executeSerial(tarantoolClient::getVersion);
     }
 
     private <T, R> Mono<R> execute(Class<T> entityClass, Function<TarantoolSpaceOperations<TarantoolTuple, TarantoolResult<TarantoolTuple>>, CompletableFuture<R>> operation) {
@@ -480,110 +464,9 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
         }).onErrorMap(this::translateThrowable);
     }
 
-    private Throwable translateThrowable(Throwable throwable) {
-        if (throwable instanceof RuntimeException) {
-            DataAccessException dataAccessException = exceptionTranslator.translateExceptionIfPossible((RuntimeException) throwable);
-            if (dataAccessException != null) {
-                return dataAccessException;
-            }
-        }
-        return throwable;
-    }
-
-    private Conditions primaryIndexQuery(TarantoolTuple tuple, Class<?> entityClass) {
-        List<Object> indexParts = new ArrayList<>();
-        TarantoolPersistentEntity<?> persistentEntity = tarantoolConverter.getMappingContext().getRequiredPersistentEntity(entityClass);
-        if (persistentEntity.hasCompositePrimaryKey()) {
-            TarantoolPersistentProperty idProperty = persistentEntity.getRequiredIdProperty();
-            TarantoolPersistentEntity<?> idPersistentEntity = tarantoolConverter.getMappingContext().getRequiredPersistentEntity(idProperty.getType());
-
-            idPersistentEntity.forEach(property -> {
-                Object value = tuple.getObject(property.getFieldName())
-                        .orElseThrow(() -> new MappingException(String.format("Id property field %s not found in tuple", property.getFieldName())));
-                indexParts.add(value);
-            });
-        } else if (!persistentEntity.hasIdProperty()) {
-            persistentEntity.forEach(property -> {
-                if (property.isPrimaryKeyField()) {
-                    Object value = tuple.getObject(property.getFieldName())
-                            .orElseThrow(() -> new MappingException(String.format("Id property field %s not found in tuple", property.getFieldName())));
-                    indexParts.add(value);
-                }
-            });
-        } else {
-            TarantoolPersistentProperty idProperty = persistentEntity.getRequiredIdProperty();
-            Object value = tuple.getObject(idProperty.getFieldName())
-                    .orElseThrow(() -> new MappingException(String.format("Id property %s not found in tuple", idProperty.getFieldName())));
-            indexParts.add(value);
-        }
-        if (indexParts.isEmpty()) {
-            throw new MappingException(String.format("Can't retrieve id fields for query for entity %s", persistentEntity.getType().getSimpleName()));
-        }
-        return Conditions.indexEquals(TarantoolIndexQuery.PRIMARY, indexParts);
-    }
-
-    private <T> Conditions primaryIndexQuery(T source) {
-        TarantoolPersistentEntity<?> persistentEntity = tarantoolConverter.getMappingContext().getRequiredPersistentEntity(source.getClass());
-        Object id = persistentEntity.getIdentifierAccessor(source).getRequiredIdentifier();
-        return primaryIndexQuery(id, persistentEntity);
-    }
-
-    private <ID> Conditions primaryIndexQueryById(ID id, Class<?> entityClass) {
-        TarantoolPersistentEntity<?> persistentEntity = tarantoolConverter.getMappingContext().getRequiredPersistentEntity(entityClass);
-        return primaryIndexQuery(id, persistentEntity);
-    }
-
-    private <ID> Conditions primaryIndexQuery(ID id, TarantoolPersistentEntity<?> persistentEntity) {
-        List<Object> indexParts = new ArrayList<>();
-        if (persistentEntity.hasCompositePrimaryKey()) {
-            TarantoolPersistentEntity<?> idPersistentEntity = tarantoolConverter.getMappingContext().getRequiredPersistentEntity(id.getClass());
-            ConvertingPropertyAccessor<ID> idPropertyAccessor = new ConvertingPropertyAccessor<>(idPersistentEntity.getPropertyAccessor(id), tarantoolConverter.getConversionService());
-            idPersistentEntity.forEach(property -> indexParts.add(idPropertyAccessor.getProperty(property)));
-        } else if (id instanceof MapId) {
-            MapId mapId = (MapId) id;
-            persistentEntity.forEach(property -> {
-                if (property.isPrimaryKeyField()) {
-                    indexParts.add(mapId.get(property.getName()));
-                }
-            });
-        } else {
-            indexParts.add(id);
-        }
-        if (indexParts.isEmpty()) {
-            throw new MappingException(String.format("Can't retrieve id fields for query for entity %s", persistentEntity.getType().getSimpleName()));
-        }
-        return Conditions.indexEquals(TarantoolIndexQuery.PRIMARY, mappedTValues(indexParts));
-    }
-
-    private <T> TarantoolTuple entityToTuple(T entity, String spaceName) {
-        TarantoolSpaceMetadata spaceMetadata = spaceMetadata(spaceName).orElseThrow(() -> new MappingException(String.format("Space metadata not found for space %s", spaceName)));
-        TarantoolTuple tuple = new TarantoolTupleImpl(messagePackMapper, spaceMetadata);
-        tarantoolConverter.write(entity, tuple);
-        return tuple;
-    }
-
-    private <T> T tupleToEntity(Object tuple, Class<T> entityClass) {
-        return tarantoolConverter.read(entityClass, tuple);
-    }
-
-    private List<?> mappedTValues(List<?> values) {
-        return (List<?>) tarantoolConverter.convertToWritableType(values);
-    }
-
-    private static TarantoolConverter newTarantoolConverter() {
-        MappingTarantoolConverter converter = new MappingTarantoolConverter();
-        converter.afterPropertiesSet();
-        return converter;
-    }
-
-    private <T> Optional<TarantoolSpaceMetadata> spaceMetadata(Class<T> entityClass) {
-        TarantoolPersistentEntity<?> entityMetadata = tarantoolConverter.getMappingContext().getPersistentEntity(entityClass);
-        return entityMetadata != null ? spaceMetadata(entityMetadata.getSpaceName()) : Optional.empty();
-    }
-
-    private Optional<TarantoolSpaceMetadata> spaceMetadata(String spaceName) {
+    private <R> R executeSerial(Supplier<R> supplier) {
         try {
-            return tarantoolClient.metadata().getSpaceByName(spaceName);
+            return supplier.get();
         } catch (Exception e) {
             DataAccessException exception = exceptionTranslator.translateExceptionIfPossible((RuntimeException) e);
             if (exception != null) {
@@ -593,4 +476,20 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
             }
         }
     }
+
+    private Throwable translateThrowable(Throwable throwable) {
+        if (throwable instanceof RuntimeException) {
+            DataAccessException dataAccessException = exceptionTranslator.translateExceptionIfPossible((RuntimeException) throwable);
+            if (dataAccessException != null) {
+                return dataAccessException;
+            }
+        }
+        return new DataRetrievalFailureException(throwable.getMessage(), throwable);
+    }
+
+    private <T> Optional<TarantoolSpaceMetadata> spaceMetadata(Class<T> entityClass) {
+        TarantoolPersistentEntity<?> entityMetadata = tarantoolConverter.getMappingContext().getPersistentEntity(entityClass);
+        return entityMetadata != null ? executeSerial(() -> tarantoolClient.metadata().getSpaceByName(entityMetadata.getSpaceName())) : Optional.empty();
+    }
+
 }

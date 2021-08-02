@@ -1,0 +1,69 @@
+package org.springframework.data.tarantool.core;
+
+import io.tarantool.driver.api.tuple.TarantoolTuple;
+import io.tarantool.driver.api.tuple.TarantoolTupleImpl;
+import io.tarantool.driver.mappers.MessagePackMapper;
+import io.tarantool.driver.metadata.TarantoolSpaceMetadata;
+import org.springframework.data.tarantool.core.convert.TarantoolConverter;
+
+import java.util.List;
+
+/**
+ * Common interface to accumulate methods to interact with TarantoolConverter
+ *
+ * @author Alexander Rublev
+ */
+public interface TarantoolConverterAware {
+
+    /**
+     * Return the entity converter used for this instance
+     *
+     * @return entity converter
+     */
+    TarantoolConverter getConverter();
+
+    /**
+     * Determine name of Tarantool space
+     * @param entityClass entity class to use
+     * @param <T> entity class parameter
+     * @return name of space
+     */
+    default  <T> String spaceName(Class<T> entityClass) {
+        return getConverter().getMappingContext().getRequiredPersistentEntity(entityClass).getSpaceName();
+    }
+
+    /**
+     * Convert entity to Tarantool tuple
+     * @param entity entity instance to convert
+     * @param mapper Tarantool MessagePackMapper mapper to use
+     * @param spaceMetadata Tarantool Space Metadata for corresponding entity
+     * @param <T> entity class parameter
+     * @return Tarantool tuple
+     */
+    default  <T> TarantoolTuple entityToTuple(T entity, MessagePackMapper mapper, TarantoolSpaceMetadata spaceMetadata) {
+        TarantoolTuple tuple = new TarantoolTupleImpl(mapper, spaceMetadata);
+        getConverter().write(entity, tuple);
+        return tuple;
+    }
+
+    /**
+     * Convert Tarantool tuple to entity
+     * @param tuple Tarantool tuple to convert
+     * @param entityClass entity class to use
+     * @param <T> entity class parameter
+     * @return converted entity
+     */
+    default  <T> T tupleToEntity(Object tuple, Class<T> entityClass) {
+        return getConverter().read(entityClass, tuple);
+    }
+
+    /**
+     * Convert multiple values to Tarantool writable objects
+     * @param values list of values to convert
+     * @return list of Tarantool objects
+     */
+    default List<?> mappedTValues(List<?> values) {
+        return (List<?>) getConverter().convertToWritableType(values);
+    }
+
+}

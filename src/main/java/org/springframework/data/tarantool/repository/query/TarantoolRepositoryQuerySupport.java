@@ -5,6 +5,7 @@ import org.springframework.data.repository.query.RepositoryQuery;
 import org.springframework.data.repository.query.ResultProcessor;
 import org.springframework.data.repository.query.ReturnedType;
 import org.springframework.data.tarantool.core.ReactiveTarantoolOperations;
+import org.springframework.data.tarantool.core.convert.TarantoolConverter;
 import org.springframework.util.ClassUtils;
 
 import java.util.Map;
@@ -16,17 +17,17 @@ import java.util.Map;
  */
 public abstract class TarantoolRepositoryQuerySupport implements RepositoryQuery {
     private final TarantoolQueryMethod queryMethod;
-    private final ReactiveTarantoolOperations operations;
+    private final TarantoolConverter converter;
 
     /**
      * Create a new {@link TarantoolRepositoryQuerySupport} from the given {@link TarantoolQueryMethod}
      * and {@link ReactiveTarantoolOperations}
      * @param queryMethod must not be {@literal null}
-     * @param operations must not be {@literal null}
+     * @param converter must not be {@literal null}
      */
-    public TarantoolRepositoryQuerySupport(TarantoolQueryMethod queryMethod, ReactiveTarantoolOperations operations) {
+    public TarantoolRepositoryQuerySupport(TarantoolQueryMethod queryMethod, TarantoolConverter converter) {
         this.queryMethod = queryMethod;
-        this.operations = operations;
+        this.converter = converter;
     }
 
     @Override
@@ -34,18 +35,9 @@ public abstract class TarantoolRepositoryQuerySupport implements RepositoryQuery
         return this.queryMethod;
     }
 
-    /**
-     * Returns the related {@link ReactiveTarantoolOperations}.
-     *
-     * @return never {@literal null}.
-     */
-    public ReactiveTarantoolOperations getOperations() {
-        return this.operations;
-    }
-
     protected Class<?> resolveResultType(ResultProcessor resultProcessor) {
         TarantoolReturnedType returnedType = new TarantoolReturnedType(resultProcessor.getReturnedType(),
-                operations.getConverter().getCustomConversions());
+                converter.getCustomConversions());
 
         return (returnedType.isProjecting() ? returnedType.getDomainType() : returnedType.getReturnedType());
     }

@@ -6,8 +6,8 @@ import org.springframework.data.repository.config.RepositoryConfigurationExtensi
 import org.springframework.data.repository.config.RepositoryConfigurationExtensionSupport;
 import org.springframework.data.repository.core.RepositoryMetadata;
 import org.springframework.data.tarantool.core.mapping.Space;
-import org.springframework.data.tarantool.repository.ReactiveTarantoolRepository;
-import org.springframework.data.tarantool.repository.support.ReactiveTarantoolRepositoryFactoryBean;
+import org.springframework.data.tarantool.repository.TarantoolRepository;
+import org.springframework.data.tarantool.repository.support.TarantoolRepositoryFactoryBean;
 import org.springframework.util.StringUtils;
 
 import java.lang.annotation.Annotation;
@@ -15,39 +15,48 @@ import java.util.Collection;
 import java.util.Collections;
 
 /**
- * Tarantool specific implementation of {@link RepositoryConfigurationExtension}
- * for different configuration options.
+ * {@link RepositoryConfigurationExtension} for Tarantool.
  *
  * @author Alexander Rublev
  */
-public class ReactiveTarantoolRepositoryConfigurationExtension extends TarantoolRepositoryConfigurationExtension {
+public class TarantoolRepositoryConfigurationExtension extends RepositoryConfigurationExtensionSupport {
 
     @Override
     public String getModuleName() {
-        return "Reactive Tarantool";
+        return "Tarantool";
+    }
+
+    @Override
+    protected String getModulePrefix() {
+        return "tarantool";
     }
 
     @Override
     public String getRepositoryFactoryBeanClassName() {
-        return ReactiveTarantoolRepositoryFactoryBean.class.getName();
+        return TarantoolRepositoryFactoryBean.class.getName();
     }
 
     @Override
     public void postProcess(BeanDefinitionBuilder builder, AnnotationRepositoryConfigurationSource config) {
-        String reactiveTarantoolTemplateRef = config.getAttributes().getString("reactiveTarantoolTemplateRef");
+        String tarantoolTemplateRef = config.getAttributes().getString("tarantoolTemplateRef");
 
-        if (StringUtils.hasText(reactiveTarantoolTemplateRef)) {
-            builder.addPropertyReference("reactiveTarantoolOperations", reactiveTarantoolTemplateRef);
+        if (StringUtils.hasText(tarantoolTemplateRef)) {
+            builder.addPropertyReference("tarantoolOperations", tarantoolTemplateRef);
         }
     }
 
     @Override
+    protected Collection<Class<? extends Annotation>> getIdentifyingAnnotations() {
+        return Collections.singleton(Space.class);
+    }
+
+    @Override
     protected Collection<Class<?>> getIdentifyingTypes() {
-        return Collections.singleton(ReactiveTarantoolRepository.class);
+        return Collections.singleton(TarantoolRepository.class);
     }
 
     protected boolean useRepositoryConfiguration(RepositoryMetadata metadata) {
-        return metadata.isReactiveRepository();
+        return !metadata.isReactiveRepository();
     }
 
 }
