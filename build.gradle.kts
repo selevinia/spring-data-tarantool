@@ -30,10 +30,11 @@ configurations["integrationCompileOnly"].extendsFrom(configurations.testCompileO
 configurations["integrationAnnotationProcessor"].extendsFrom(configurations.testAnnotationProcessor.get())
 
 dependencies {
+    api("org.springframework.data:spring-data-commons:2.4.10")
+    api("org.springframework:spring-context:5.3.8")
+    api("org.springframework:spring-tx:5.3.8")
+
     implementation("io.tarantool:cartridge-driver:0.4.3")
-    implementation("org.springframework:spring-context:5.3.8")
-    implementation("org.springframework:spring-tx:5.3.8")
-    implementation("org.springframework.data:spring-data-commons:2.4.10")
     implementation("io.projectreactor:reactor-core:3.4.7")
     implementation("com.google.code.findbugs:jsr305:3.0.2")
 
