@@ -34,6 +34,7 @@ import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * Primary implementation of {@link TarantoolOperations}
@@ -114,11 +115,11 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
     }
 
     @Override
-    public <T, ID> List<T> selectByIds(List<ID> ids, Class<T> entityClass) {
+    public <T, ID> List<T> selectByIds(Iterable<ID> ids, Class<T> entityClass) {
         Assert.notNull(ids, "List of ids must not be null");
         Assert.notNull(entityClass, "Entity class must not be null");
 
-        List<CompletableFuture<TarantoolResult<TarantoolTuple>>> futures = ids.stream().map(id -> {
+        List<CompletableFuture<TarantoolResult<TarantoolTuple>>> futures = StreamSupport.stream(ids.spliterator(), false).map(id -> {
             Conditions query = tupleMethodsHelper.primaryIndexQueryById(id, entityClass);
             return execute(entityClass, spaceOps -> spaceOps.select(query));
         }).collect(Collectors.toList());

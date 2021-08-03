@@ -40,7 +40,7 @@ public interface TarantoolOperations extends TarantoolConverterAware, TarantoolC
      * @param entityClass Desired type of the result object
      * @return The converted object
      */
-    <T, ID> List<T> selectByIds(List<ID> ids, Class<T> entityClass);
+    <T, ID> List<T> selectByIds(Iterable<ID> ids, Class<T> entityClass);
 
     /**
      * Map the results of a query over a space for the entity class to a single instance of an object of the

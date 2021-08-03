@@ -1,13 +1,17 @@
 package org.springframework.data.tarantool.repository.support;
 
+import io.tarantool.driver.api.conditions.Conditions;
 import org.springframework.data.mapping.context.AbstractMappingContext;
 import org.springframework.data.tarantool.core.TarantoolOperations;
 import org.springframework.data.tarantool.core.mapping.BasicTarantoolPersistentEntity;
 import org.springframework.data.tarantool.core.mapping.TarantoolPersistentProperty;
 import org.springframework.data.tarantool.repository.Sort;
 import org.springframework.data.tarantool.repository.TarantoolRepository;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,63 +37,100 @@ public class SimpleTarantoolRepository<T, ID> implements TarantoolRepository<T, 
     }
 
     @Override
+    @Nullable
+    @SuppressWarnings("unchecked")
     public <S extends T> S save(S entity) {
-        return null; //TODO implement using operations
+        Assert.notNull(entity, "The given entity must not be null");
+
+        if (this.entityInformation.isNew(entity)) {
+            return operations.insert(entity, (Class<S>) entityInformation.getJavaType());
+        }
+        return operations.replace(entity, (Class<S>) entityInformation.getJavaType());
     }
 
     @Override
     public <S extends T> Iterable<S> saveAll(Iterable<S> entities) {
-        return null; //TODO implement using operations
+        Assert.notNull(entities, "The given Iterable of entities must not be null");
+
+        List<S> result = new ArrayList<>();
+        for (S entity : entities) {
+            result.add(save(entity));
+        }
+        return result;
     }
 
     @Override
     public Optional<T> findById(ID id) {
-        return Optional.empty(); //TODO implement using operations
+        Assert.notNull(id, "The given id must not be null");
+
+        return Optional.ofNullable(operations.selectById(id, entityInformation.getJavaType()));
     }
 
     @Override
     public boolean existsById(ID id) {
-        return false; //TODO implement using operations
+        Assert.notNull(id, "The given id must not be null");
+
+        return Optional.ofNullable(operations.selectById(id, entityInformation.getJavaType())).isPresent();
     }
 
     @Override
     public Iterable<T> findAll() {
-        return null; //TODO implement using operations
+        return operations.select(entityInformation.getJavaType());
     }
 
     @Override
     public List<T> findAll(Sort sort) {
-        return null; //TODO implement using operations
+        if (sort.isAscending()) {
+            return operations.select(Conditions.ascending(), entityInformation.getJavaType());
+        }
+
+        if (sort.isDescending()) {
+            return operations.select(Conditions.descending(), entityInformation.getJavaType());
+        }
+
+        throw new IllegalArgumentException(sort + "is not supported");
     }
 
     @Override
-    public Iterable<T> findAllById(Iterable<ID> ids) {
-        return null; //TODO implement using operations
+    public List<T> findAllById(Iterable<ID> ids) {
+        Assert.notNull(ids, "The given Iterable of ids must not be null");
+
+        if (!ids.iterator().hasNext()) {
+            return Collections.emptyList();
+        }
+
+        return operations.selectByIds(ids, entityInformation.getJavaType());
     }
 
     @Override
     public long count() {
-        return 0; //TODO implement using operations
+        return operations.count(entityInformation.getJavaType());
     }
 
     @Override
     public void deleteById(ID id) {
-        //TODO implement using operations
+        Assert.notNull(id, "The given id must not be null");
+
+        operations.deleteById(id, entityInformation.getJavaType());
     }
 
     @Override
     public void delete(T entity) {
-        //TODO implement using operations
+        Assert.notNull(entity, "The entity must not be null");
+
+        operations.delete(entity, entityInformation.getJavaType());
     }
 
     @Override
     public void deleteAll(Iterable<? extends T> entities) {
-        //TODO implement using operations
+        Assert.notNull(entities, "The given Iterable of entities must not be null");
+
+        entities.forEach(entity -> operations.delete(entity, entityInformation.getJavaType()));
     }
 
     @Override
     public void deleteAll() {
-        //TODO implement using operations
+        operations.truncate(entityInformation.getJavaType());
     }
 
 }
