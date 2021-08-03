@@ -7,6 +7,7 @@ import io.tarantool.driver.api.conditions.Conditions;
 import io.tarantool.driver.api.space.TarantoolSpaceOperations;
 import io.tarantool.driver.api.tuple.TarantoolTuple;
 import io.tarantool.driver.api.tuple.operations.TupleOperations;
+import io.tarantool.driver.exceptions.TarantoolSpaceOperationException;
 import io.tarantool.driver.mappers.MessagePackMapper;
 import io.tarantool.driver.mappers.TarantoolTupleSingleResultMapperFactory;
 import io.tarantool.driver.mappers.ValueConverter;
@@ -124,7 +125,7 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
 
         return unwrap(CompletableFuture.allOf(futures.toArray(new CompletableFuture<?>[0]))
                 .thenApply(v -> futures.stream()
-                        .map(CompletableFuture::join)
+                        .map(f -> f.join().stream().findFirst().orElse(null))
                         .collect(Collectors.toList())))
                 .stream()
                 .map(t -> tupleToEntity(t, entityClass))
@@ -184,7 +185,7 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         T entityToUse = entityToInsert(entity);
 
         TarantoolSpaceMetadata spaceMetadata = spaceMetadata(entityClass).orElseThrow(() -> new MappingException(String.format("Space metadata not found for space %s", spaceName)));
-        TarantoolTuple tuple = entityToTuple(entityToUse, messagePackMapper, spaceMetadata);
+        TarantoolTuple tuple = entityToTuple(maybeCallBeforeConvert(entityToUse, spaceName), messagePackMapper, spaceMetadata);
         maybeCallBeforeSave(entityToUse, tuple, spaceName);
 
         return unwrap(execute(spaceName, spaceOps -> spaceOps.insert(tuple))).stream()
@@ -202,7 +203,7 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         T entityToUse = entityToUpdate(entity);
 
         TarantoolSpaceMetadata spaceMetadata = spaceMetadata(entityClass).orElseThrow(() -> new MappingException(String.format("Space metadata not found for space %s", spaceName)));
-        TarantoolTuple tuple = entityToTuple(entityToUse, messagePackMapper, spaceMetadata);
+        TarantoolTuple tuple = entityToTuple(maybeCallBeforeConvert(entityToUse, spaceName), messagePackMapper, spaceMetadata);
         maybeCallBeforeSave(entityToUse, tuple, spaceName);
 
         return unwrap(execute(spaceName, spaceOps -> spaceOps.replace(tuple))).stream()
@@ -221,18 +222,19 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         T entityToUse = entityToUpdate(entity);
 
         TarantoolSpaceMetadata spaceMetadata = spaceMetadata(entityClass).orElseThrow(() -> new MappingException(String.format("Space metadata not found for space %s", spaceName)));
-        TarantoolTuple tuple = entityToTuple(entityToUse, messagePackMapper, spaceMetadata);
+        TarantoolTuple tuple = entityToTuple(maybeCallBeforeConvert(entityToUse, spaceName), messagePackMapper, spaceMetadata);
         maybeCallBeforeSave(entityToUse, tuple, spaceName);
 
         TupleOperations operations = tupleMethodsHelper.prepareUpdateOperations(tuple);
-        List<CompletableFuture<TarantoolResult<TarantoolTuple>>> futures = unwrap(execute(spaceName, spaceOps -> spaceOps.select(query))).stream().map(id -> {
-            Conditions conditions = tupleMethodsHelper.primaryIndexQueryById(id, entityClass);
+        TarantoolResult<TarantoolTuple> sr = unwrap(execute(spaceName, spaceOps -> spaceOps.select(query)));
+        List<CompletableFuture<TarantoolResult<TarantoolTuple>>> futures = sr.stream().map(t -> {
+            Conditions conditions = tupleMethodsHelper.primaryIndexQuery(t, entityClass);
             return execute(spaceName, spaceOps -> spaceOps.update(conditions, operations));
         }).collect(Collectors.toList());
 
         return unwrap(CompletableFuture.allOf(futures.toArray(new CompletableFuture<?>[0]))
                 .thenApply(v -> futures.stream()
-                        .map(CompletableFuture::join)
+                        .map(f -> f.join().stream().findFirst().orElse(null))
                         .collect(Collectors.toList())))
                 .stream()
                 .map(t -> tupleToEntity(t, entityClass))
@@ -262,7 +264,7 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
                     Conditions conditions = tupleMethodsHelper.primaryIndexQuery(tuple, entityClass);
                     return unwrap(execute(spaceName, spaceOps -> spaceOps.delete(conditions)));
                 })
-                .map(t -> tupleToEntity(t, entityClass))
+                .flatMap(tuples -> tuples.stream().map(t -> tupleToEntity(t, entityClass)))
                 .collect(Collectors.toList());
     }
 
@@ -284,7 +286,11 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
 
         if (isProxyClient()) {
             String spaceName = spaceName(entityClass);
-            return unwrap(tarantoolClient.callForSingleResult("crud.truncate", Collections.singletonList(spaceName), Boolean.class));
+            Boolean truncated = unwrap(tarantoolClient.callForSingleResult("crud.truncate", Collections.singletonList(spaceName), Boolean.class));
+            if (!truncated) {
+                throw new TarantoolSpaceOperationException(String.format("Failed to truncate space %s", spaceName));
+            }
+            return true;
         }
         throw new UnsupportedOperationException("Truncate operation not supported yet in driver");
     }
