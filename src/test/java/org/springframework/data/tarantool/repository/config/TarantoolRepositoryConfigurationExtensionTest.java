@@ -9,31 +9,31 @@ import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.type.AnnotationMetadata;
+import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.config.AnnotationRepositoryConfigurationSource;
 import org.springframework.data.repository.config.RepositoryConfiguration;
 import org.springframework.data.repository.config.RepositoryConfigurationSource;
-import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.data.tarantool.core.mapping.Space;
-import org.springframework.data.tarantool.repository.MapIdReactiveTarantoolRepository;
+import org.springframework.data.tarantool.repository.MapIdTarantoolRepository;
 
 import java.util.Collection;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
-public class ReactiveTarantoolRepositoryConfigurationExtensionTest {
+public class TarantoolRepositoryConfigurationExtensionTest {
 
     private final AnnotationMetadata metadata = AnnotationMetadata.introspect(Config.class);
     private final ResourceLoader loader = new PathMatchingResourcePatternResolver();
     private final Environment environment = new StandardEnvironment();
     private final BeanDefinitionRegistry registry = new DefaultListableBeanFactory();
     private final RepositoryConfigurationSource configurationSource = new AnnotationRepositoryConfigurationSource(metadata,
-            EnableReactiveTarantoolRepositories.class, loader, environment, registry, null);
+            EnableTarantoolRepositories.class, loader, environment, registry, null);
 
-    private ReactiveTarantoolRepositoryConfigurationExtension extension;
+    private TarantoolRepositoryConfigurationExtension extension;
 
     @BeforeEach
     void setUp() {
-        extension = new ReactiveTarantoolRepositoryConfigurationExtension();
+        extension = new TarantoolRepositoryConfigurationExtension();
     }
 
     @Test
@@ -73,7 +73,7 @@ public class ReactiveTarantoolRepositoryConfigurationExtensionTest {
         fail(String.format("Expected to find config for repository interface %s but got %s", repositoryInterface.getName(), configs));
     }
 
-    @EnableReactiveTarantoolRepositories(considerNestedRepositories = true)
+    @EnableTarantoolRepositories(considerNestedRepositories = true)
     private static class Config {
     }
 
@@ -81,12 +81,12 @@ public class ReactiveTarantoolRepositoryConfigurationExtensionTest {
     private static class Sample {
     }
 
-    interface SampleRepository extends ReactiveCrudRepository<Sample, Long> {
+    interface SampleRepository extends CrudRepository<Sample, Long> {
     }
 
-    interface UnannotatedRepository extends ReactiveCrudRepository<Object, Long> {
+    interface UnannotatedRepository extends CrudRepository<Object, Long> {
     }
 
-    interface StoreRepository extends MapIdReactiveTarantoolRepository<Object> {
+    interface StoreRepository extends MapIdTarantoolRepository<Object> {
     }
 }
