@@ -159,11 +159,24 @@ public class ReactiveTarantoolTemplateTest extends AbstractTarantoolTemplateTest
 
     @Test
     void shouldSelectByIds() {
+        TarantoolSpaceMetadata spaceMetadata = spaceMetadata();
+
         when(tarantoolClient.space(any())).thenReturn(spaceOperations);
-        when(spaceOperations.select(any())).thenReturn(CompletableFuture.completedFuture(tupleResult(messageOne, messageTwo, messageThree)));
+        when(metadataOperations.getIndexById(spaceMetadata.getSpaceName(), 0)).thenReturn(Optional.of(indexMetadata()));
+        when(spaceOperations.select(any())).then(invocation -> {
+            Conditions conditions = invocation.getArgument(0);
+            TarantoolIndexQuery indexQuery = conditions.toIndexQuery(metadataOperations, spaceMetadata);
+            if (indexQuery.getKeyValues().get(0).equals("1")) {
+                return (CompletableFuture.completedFuture(tupleResult(messageOne)));
+            } else if (indexQuery.getKeyValues().get(0).equals("2")) {
+                return (CompletableFuture.completedFuture(tupleResult(messageTwo)));
+            } else {
+                return (CompletableFuture.completedFuture(tupleResult(messageThree)));
+            }
+        });
 
         reactiveTarantoolTemplate.selectByIds(Flux.just("1", "2", "3"), Message.class).as(StepVerifier::create)
-                .expectNext(messageOne, messageOne, messageOne)
+                .expectNext(messageOne, messageTwo, messageThree)
                 .verifyComplete();
 
         verify(tarantoolClient, times(3)).space(any());
