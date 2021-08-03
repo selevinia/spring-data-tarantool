@@ -16,13 +16,13 @@ public class ReactiveDirectTarantoolQuery extends TarantoolRepositoryQuerySuppor
     private final ReactiveTarantoolOperations operations;
 
     /**
-     * Create a new {@link ReactiveDirectTarantoolQuery} from the given {@link TarantoolQueryMethod} and
+     * Create a new {@link ReactiveDirectTarantoolQuery} from the given {@link ReactiveTarantoolQueryMethod} and
      * {@link ReactiveTarantoolOperations}.
      *
      * @param queryMethod must not be {@literal null}.
      * @param operations  must not be {@literal null}.
      */
-    public ReactiveDirectTarantoolQuery(TarantoolQueryMethod queryMethod, ReactiveTarantoolOperations operations) {
+    public ReactiveDirectTarantoolQuery(ReactiveTarantoolQueryMethod queryMethod, ReactiveTarantoolOperations operations) {
         super(queryMethod, operations.getConverter());
         this.operations = operations;
     }

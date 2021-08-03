@@ -17,14 +17,14 @@ public class PartTreeTarantoolQuery extends TarantoolRepositoryQuerySupport {
     private final PartTree tree;
 
     /**
-     * Create a new {@link PartTreeTarantoolQuery} from the given {@link TarantoolQueryMethod} and
+     * Create a new {@link PartTreeTarantoolQuery} from the given {@link ReactiveTarantoolQueryMethod} and
      * {@link TarantoolOperations}.
      *
      * @param queryMethod must not be {@literal null}.
      * @param operations  must not be {@literal null}.
      */
-    public PartTreeTarantoolQuery(TarantoolQueryMethod queryMethod,
-                                          TarantoolOperations operations) {
+    public PartTreeTarantoolQuery(ReactiveTarantoolQueryMethod queryMethod,
+                                  TarantoolOperations operations) {
         super(queryMethod, operations.getConverter());
         this.operations = operations;
         this.converter = operations.getConverter();

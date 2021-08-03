@@ -22,13 +22,13 @@ public class ReactivePartTreeTarantoolQuery extends TarantoolRepositoryQuerySupp
     private final PartTree tree;
 
     /**
-     * Create a new {@link ReactivePartTreeTarantoolQuery} from the given {@link TarantoolQueryMethod} and
+     * Create a new {@link ReactivePartTreeTarantoolQuery} from the given {@link ReactiveTarantoolQueryMethod} and
      * {@link ReactiveTarantoolOperations}.
      *
      * @param queryMethod must not be {@literal null}.
      * @param operations  must not be {@literal null}.
      */
-    public ReactivePartTreeTarantoolQuery(TarantoolQueryMethod queryMethod,
+    public ReactivePartTreeTarantoolQuery(ReactiveTarantoolQueryMethod queryMethod,
                                           ReactiveTarantoolOperations operations) {
         super(queryMethod, operations.getConverter());
         this.operations = operations;

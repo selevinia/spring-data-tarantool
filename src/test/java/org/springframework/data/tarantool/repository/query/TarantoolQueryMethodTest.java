@@ -8,15 +8,14 @@ import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.core.support.DefaultRepositoryMetadata;
 import org.springframework.data.tarantool.core.mapping.TarantoolMappingContext;
 import org.springframework.data.tarantool.domain.User;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ReactiveTarantoolQueryMethodTest {
+public class TarantoolQueryMethodTest {
     private TarantoolMappingContext context;
 
     @BeforeEach
@@ -26,31 +25,31 @@ public class ReactiveTarantoolQueryMethodTest {
 
     @Test
     void shouldConsiderMethodAsCollectionQuery() throws Exception {
-        ReactiveTarantoolQueryMethod queryMethod = queryMethod(SampleRepository.class, "method");
+        TarantoolQueryMethod queryMethod = queryMethod(SampleRepository.class, "method");
 
-        assertThat(queryMethod.isStreamQuery()).isTrue();
+        assertThat(queryMethod.isStreamQuery()).isFalse();
         assertThat(queryMethod.isCollectionQuery()).isTrue();
     }
 
     @Test
     void shouldConsiderMonoMethodAsEntityQuery() throws Exception {
-        ReactiveTarantoolQueryMethod queryMethod = queryMethod(SampleRepository.class, "mono");
+        TarantoolQueryMethod queryMethod = queryMethod(SampleRepository.class, "single");
 
         assertThat(queryMethod.isCollectionQuery()).isFalse();
         assertThat(queryMethod.isQueryForEntity()).isTrue();
     }
 
-    private ReactiveTarantoolQueryMethod queryMethod(Class<?> repository, String name, Class<?>... parameters) throws Exception {
+    private TarantoolQueryMethod queryMethod(Class<?> repository, String name, Class<?>... parameters) throws Exception {
         Method method = repository.getMethod(name, parameters);
         ProjectionFactory factory = new SpelAwareProxyProjectionFactory();
-        return new ReactiveTarantoolQueryMethod(method, new DefaultRepositoryMetadata(repository), factory, context);
+        return new TarantoolQueryMethod(method, new DefaultRepositoryMetadata(repository), factory, context);
     }
 
     @SuppressWarnings("unused")
     interface SampleRepository extends Repository<User, UUID> {
 
-        Flux<User> method();
+        List<User> method();
 
-        Mono<User> mono();
+        User single();
     }
 }

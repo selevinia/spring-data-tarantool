@@ -9,7 +9,6 @@ import org.springframework.data.repository.core.support.RepositoryFactorySupport
 import org.springframework.data.repository.query.QueryLookupStrategy;
 import org.springframework.data.repository.query.QueryMethodEvaluationContextProvider;
 import org.springframework.data.repository.query.RepositoryQuery;
-import org.springframework.data.tarantool.core.ReactiveTarantoolOperations;
 import org.springframework.data.tarantool.core.TarantoolOperations;
 import org.springframework.data.tarantool.core.mapping.TarantoolPersistentEntity;
 import org.springframework.data.tarantool.core.mapping.TarantoolPersistentProperty;
@@ -80,7 +79,7 @@ public class TarantoolRepositoryFactory extends RepositoryFactorySupport {
 
         @Override
         public RepositoryQuery resolveQuery(Method method, RepositoryMetadata metadata, ProjectionFactory factory, NamedQueries namedQueries) {
-            TarantoolQueryMethod queryMethod = new TarantoolQueryMethod(method, metadata, factory, mappingContext);
+            ReactiveTarantoolQueryMethod queryMethod = new ReactiveTarantoolQueryMethod(method, metadata, factory, mappingContext);
             if (queryMethod.hasAnnotatedQuery()) {
                 return new DirectTarantoolQuery(queryMethod, operations);
             } else {

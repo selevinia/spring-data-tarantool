@@ -16,7 +16,7 @@ import org.springframework.data.tarantool.core.mapping.TarantoolPersistentProper
 import org.springframework.data.tarantool.repository.ReactiveTarantoolRepository;
 import org.springframework.data.tarantool.repository.query.ReactiveDirectTarantoolQuery;
 import org.springframework.data.tarantool.repository.query.ReactivePartTreeTarantoolQuery;
-import org.springframework.data.tarantool.repository.query.TarantoolQueryMethod;
+import org.springframework.data.tarantool.repository.query.ReactiveTarantoolQueryMethod;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
@@ -82,7 +82,7 @@ public class ReactiveTarantoolRepositoryFactory extends ReactiveRepositoryFactor
 
         @Override
         public RepositoryQuery resolveQuery(Method method, RepositoryMetadata metadata, ProjectionFactory factory, NamedQueries namedQueries) {
-            TarantoolQueryMethod queryMethod = new TarantoolQueryMethod(method, metadata, factory, mappingContext);
+            ReactiveTarantoolQueryMethod queryMethod = new ReactiveTarantoolQueryMethod(method, metadata, factory, mappingContext);
             if (queryMethod.hasAnnotatedQuery()) {
                 return new ReactiveDirectTarantoolQuery(queryMethod, operations);
             } else {
