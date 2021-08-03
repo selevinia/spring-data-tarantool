@@ -1,6 +1,5 @@
 package org.springframework.data.tarantool.core;
 
-import io.tarantool.driver.ProxyTarantoolClient;
 import io.tarantool.driver.TarantoolVersion;
 import io.tarantool.driver.api.TarantoolClient;
 import io.tarantool.driver.api.TarantoolResult;
@@ -60,8 +59,7 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
     private final TarantoolExceptionTranslator exceptionTranslator;
     private final MessagePackMapper messagePackMapper;
     private final IndexQueryCreator indexQueryCreator;
-    private @Nullable
-    ReactiveEntityCallbacks entityCallbacks;
+    private @Nullable ReactiveEntityCallbacks entityCallbacks;
 
     public ReactiveTarantoolTemplate(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient) {
         this(tarantoolClient, TarantoolConverter.newConverter(), new DefaultTarantoolExceptionTranslator());

@@ -107,6 +107,7 @@ public interface TarantoolOperations extends TarantoolConverterAware, TarantoolC
      * @param entityClass Desired type of the result object
      * @return The inserted object
      */
+    @Nullable
     <T> T insert(T entity, Class<T> entityClass);
 
     /**
@@ -118,6 +119,7 @@ public interface TarantoolOperations extends TarantoolConverterAware, TarantoolC
      * @param entityClass Desired type of the result object
      * @return The inserted object
      */
+    @Nullable
     <T> T replace(T entity, Class<T> entityClass);
 
     /**
@@ -141,7 +143,8 @@ public interface TarantoolOperations extends TarantoolConverterAware, TarantoolC
      * @param entityClass Desired type of the result object
      * @return Removed entity value
      */
-    <T> List<T> delete(T entity, Class<T> entityClass);
+    @Nullable
+    <T> T delete(T entity, Class<T> entityClass);
 
     /**
      * Map the results of a query over a space for the entity class to a List of objects of the specified type. All entities
@@ -164,6 +167,7 @@ public interface TarantoolOperations extends TarantoolConverterAware, TarantoolC
      * @param entityClass Desired type of the result object
      * @return Removed entity value
      */
+    @Nullable
     <T, ID> T deleteById(ID id, Class<T> entityClass);
 
     /**
@@ -251,7 +255,7 @@ public interface TarantoolOperations extends TarantoolConverterAware, TarantoolC
      * @param entityClass  Desired type of the result object
      * @return function call result
      */
-    <T> T callForAll(String functionName, Object[] parameters, Class<T> entityClass);
+    <T> List<T> callForAll(String functionName, Object[] parameters, Class<T> entityClass);
 
     /**
      * Call a function defined in Tarantool instance API which returns a list of MessagePack values as result. The given
