@@ -37,27 +37,24 @@ public class SimpleReactiveTarantoolRepository<T, ID> implements ReactiveTaranto
     public <S extends T> Mono<S> save(S entity) {
         Assert.notNull(entity, "The given entity must not be null");
 
-        BasicTarantoolPersistentEntity<?> persistentEntity = this.mappingContext.getPersistentEntity(entity.getClass());
-        if (persistentEntity != null && persistentEntity.hasVersionProperty()) {
-            if (!this.entityInformation.isNew(entity)) {
-                return operations.replace(entity, (Class<S>) entityInformation.getJavaType());
-            }
+        if (this.entityInformation.isNew(entity)) {
+            return operations.insert(entity, (Class<S>) entityInformation.getJavaType());
         }
-        return operations.insert(entity, (Class<S>) entityInformation.getJavaType());
+        return operations.replace(entity, (Class<S>) entityInformation.getJavaType());
     }
 
     @Override
     public <S extends T> Flux<S> saveAll(Iterable<S> entities) {
         Assert.notNull(entities, "The given Iterable of entities must not be null");
 
-        return Flux.fromIterable(entities).flatMap(this::save);
+        return Flux.fromIterable(entities).concatMap(this::save);
     }
 
     @Override
     public <S extends T> Flux<S> saveAll(Publisher<S> entityStream) {
         Assert.notNull(entityStream, "The given Publisher of entities must not be null");
 
-        return Flux.from(entityStream).flatMap(this::save);
+        return Flux.from(entityStream).concatMap(this::save);
     }
 
     @Override
