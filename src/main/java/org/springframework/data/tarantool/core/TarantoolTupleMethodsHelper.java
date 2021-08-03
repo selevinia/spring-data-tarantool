@@ -1,7 +1,9 @@
 package org.springframework.data.tarantool.core;
 
 import io.tarantool.driver.api.conditions.Conditions;
+import io.tarantool.driver.api.tuple.TarantoolNullField;
 import io.tarantool.driver.api.tuple.TarantoolTuple;
+import io.tarantool.driver.api.tuple.operations.TupleOperations;
 import io.tarantool.driver.protocol.TarantoolIndexQuery;
 import org.springframework.data.mapping.MappingException;
 import org.springframework.data.mapping.model.ConvertingPropertyAccessor;
@@ -13,13 +15,14 @@ import org.springframework.util.Assert;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Common class to accumulate methods to create TarantoolClient {@link Conditions}
+ * Common class to accumulate methods to create TarantoolClient {@link Conditions} an {@link TupleOperations}
  *
  * @author Alexander Rublev
  */
-public class IndexQueryCreator {
+public class TarantoolTupleMethodsHelper {
     private final TarantoolConverter tarantoolConverter;
     private final TarantoolConverterAware tarantoolConverterAware;
 
@@ -27,7 +30,7 @@ public class IndexQueryCreator {
      * Create new IndexQueryCreator
      * @param tarantoolConverter tarantool converter to use
      */
-    public IndexQueryCreator(TarantoolConverter tarantoolConverter, TarantoolConverterAware tarantoolConverterAware) {
+    public TarantoolTupleMethodsHelper(TarantoolConverter tarantoolConverter, TarantoolConverterAware tarantoolConverterAware) {
         Assert.notNull(tarantoolConverter, "TarantoolConverter must not be null");
         Assert.notNull(tarantoolConverterAware, "TarantoolConverterAware must not be null");
 
@@ -125,4 +128,24 @@ public class IndexQueryCreator {
         }
         return Conditions.indexEquals(TarantoolIndexQuery.PRIMARY, tarantoolConverterAware.mappedTValues(indexParts));
     }
+
+    /**
+     * Prepare Tarantool TupleOperations to use for update
+     * @param tuple source tuple
+     * @return prepared TupleOperations instance
+     */
+    public TupleOperations prepareUpdateOperations(TarantoolTuple tuple) {
+        AtomicReference<TupleOperations> operations = new AtomicReference<>();
+        TupleOperations.fromTarantoolTuple(tuple).asList().stream()
+                .filter(operation -> !(operation.getValue() instanceof TarantoolNullField))
+                .forEach(operation -> {
+                    if (operations.get() == null) {
+                        operations.set(TupleOperations.set(operation.getFieldIndex(), operation.getValue()));
+                    } else {
+                        operations.get().addOperation(operation);
+                    }
+                });
+        return operations.get();
+    }
+
 }

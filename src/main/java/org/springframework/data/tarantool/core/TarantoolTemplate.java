@@ -6,6 +6,7 @@ import io.tarantool.driver.api.TarantoolResult;
 import io.tarantool.driver.api.conditions.Conditions;
 import io.tarantool.driver.api.space.TarantoolSpaceOperations;
 import io.tarantool.driver.api.tuple.TarantoolTuple;
+import io.tarantool.driver.api.tuple.operations.TupleOperations;
 import io.tarantool.driver.mappers.MessagePackMapper;
 import io.tarantool.driver.mappers.TarantoolTupleSingleResultMapperFactory;
 import io.tarantool.driver.mappers.ValueConverter;
@@ -43,7 +44,7 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
     private final TarantoolConverter tarantoolConverter;
     private final TarantoolExceptionTranslator exceptionTranslator;
     private final MessagePackMapper messagePackMapper;
-    private final IndexQueryCreator indexQueryCreator;
+    private final TarantoolTupleMethodsHelper tupleMethodsHelper;
     private @Nullable EntityCallbacks entityCallbacks;
 
     public TarantoolTemplate(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient) {
@@ -57,7 +58,7 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         this.tarantoolConverter = tarantoolConverter;
         this.exceptionTranslator = exceptionTranslator;
         this.messagePackMapper = tarantoolClient.getConfig().getMessagePackMapper();
-        this.indexQueryCreator = new IndexQueryCreator(tarantoolConverter, this);
+        this.tupleMethodsHelper = new TarantoolTupleMethodsHelper(tarantoolConverter, this);
     }
 
     @Override
@@ -107,7 +108,7 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         Assert.notNull(id, "Id must not be null");
         Assert.notNull(entityClass, "Entity class must not be null");
 
-        Conditions query = indexQueryCreator.primaryIndexQueryById(id, entityClass);
+        Conditions query = tupleMethodsHelper.primaryIndexQueryById(id, entityClass);
         return selectOne(query, entityClass);
     }
 
@@ -117,7 +118,7 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         Assert.notNull(entityClass, "Entity class must not be null");
 
         List<CompletableFuture<TarantoolResult<TarantoolTuple>>> futures = ids.stream().map(id -> {
-            Conditions query = indexQueryCreator.primaryIndexQueryById(id, entityClass);
+            Conditions query = tupleMethodsHelper.primaryIndexQueryById(id, entityClass);
             return execute(entityClass, spaceOps -> spaceOps.select(query));
         }).collect(Collectors.toList());
 
@@ -180,8 +181,7 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         Assert.notNull(entityClass, "Entity class must not be null");
 
         String spaceName = spaceName(entityClass);
-        AdaptableEntity<T> source = AdaptableMappedEntity.of(maybeCallBeforeConvert(entity, spaceName), tarantoolConverter.getMappingContext(), tarantoolConverter.getConversionService());
-        T entityToUse = source.isVersionedEntity() ? source.initializeVersionProperty() : entity;
+        T entityToUse = entityToInsert(entity);
 
         TarantoolSpaceMetadata spaceMetadata = spaceMetadata(entityClass).orElseThrow(() -> new MappingException(String.format("Space metadata not found for space %s", spaceName)));
         TarantoolTuple tuple = entityToTuple(entityToUse, messagePackMapper, spaceMetadata);
@@ -199,8 +199,7 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         Assert.notNull(entityClass, "Entity class must not be null");
 
         String spaceName = spaceName(entityClass);
-        AdaptableEntity<T> source = AdaptableMappedEntity.of(maybeCallBeforeConvert(entity, spaceName), tarantoolConverter.getMappingContext(), tarantoolConverter.getConversionService());
-        T entityToUse = source.isVersionedEntity() ? source.initializeVersionProperty() : entity;
+        T entityToUse = entityToUpdate(entity);
 
         TarantoolSpaceMetadata spaceMetadata = spaceMetadata(entityClass).orElseThrow(() -> new MappingException(String.format("Space metadata not found for space %s", spaceName)));
         TarantoolTuple tuple = entityToTuple(entityToUse, messagePackMapper, spaceMetadata);
@@ -218,7 +217,26 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         Assert.notNull(entity, "Entity must not be null");
         Assert.notNull(entityClass, "Entity class must not be null");
 
-        return null;//TODO should be implemented
+        String spaceName = spaceName(entityClass);
+        T entityToUse = entityToUpdate(entity);
+
+        TarantoolSpaceMetadata spaceMetadata = spaceMetadata(entityClass).orElseThrow(() -> new MappingException(String.format("Space metadata not found for space %s", spaceName)));
+        TarantoolTuple tuple = entityToTuple(entityToUse, messagePackMapper, spaceMetadata);
+        maybeCallBeforeSave(entityToUse, tuple, spaceName);
+
+        TupleOperations operations = tupleMethodsHelper.prepareUpdateOperations(tuple);
+        List<CompletableFuture<TarantoolResult<TarantoolTuple>>> futures = unwrap(execute(spaceName, spaceOps -> spaceOps.select(query))).stream().map(id -> {
+            Conditions conditions = tupleMethodsHelper.primaryIndexQueryById(id, entityClass);
+            return execute(spaceName, spaceOps -> spaceOps.update(conditions, operations));
+        }).collect(Collectors.toList());
+
+        return unwrap(CompletableFuture.allOf(futures.toArray(new CompletableFuture<?>[0]))
+                .thenApply(v -> futures.stream()
+                        .map(CompletableFuture::join)
+                        .collect(Collectors.toList())))
+                .stream()
+                .map(t -> tupleToEntity(t, entityClass))
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -226,7 +244,7 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         Assert.notNull(entity, "Entity must not be null");
         Assert.notNull(entityClass, "Entity class must not be null");
 
-        Conditions query = indexQueryCreator.primaryIndexQuery(entity);
+        Conditions query = tupleMethodsHelper.primaryIndexQuery(entity);
         return unwrap(execute(entityClass, spaceOps -> spaceOps.delete(query))).stream()
                 .findFirst()
                 .map(tuples -> tupleToEntity(tuples, entityClass))
@@ -241,7 +259,7 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         String spaceName = spaceName(entityClass);
         return unwrap(execute(spaceName, spaceOps -> spaceOps.select(query))).stream()
                 .map(tuple -> {
-                    Conditions conditions = indexQueryCreator.primaryIndexQuery(tuple, entityClass);
+                    Conditions conditions = tupleMethodsHelper.primaryIndexQuery(tuple, entityClass);
                     return unwrap(execute(spaceName, spaceOps -> spaceOps.delete(conditions)));
                 })
                 .map(t -> tupleToEntity(t, entityClass))
@@ -253,7 +271,7 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         Assert.notNull(id, "Id must not be null");
         Assert.notNull(entityClass, "Entity class must not be null");
 
-        Conditions query = indexQueryCreator.primaryIndexQueryById(id, entityClass);
+        Conditions query = tupleMethodsHelper.primaryIndexQueryById(id, entityClass);
         return unwrap(execute(entityClass, spaceOps -> spaceOps.delete(query))).stream()
                 .findFirst()
                 .map(tuples -> tupleToEntity(tuples, entityClass))

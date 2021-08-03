@@ -70,6 +70,39 @@ public interface TarantoolConverterAware {
         return (List<?>) getConverter().convertToWritableType(values);
     }
 
+    /**
+     * Prepare entity to use in insert operation
+     * @param entity just entity to prepare
+     * @param <T> entity class parameter
+     * @return prepared entity
+     */
+    default <T> T entityToInsert(T entity) {
+        AdaptableEntity<T> source = AdaptableMappedEntity.of(entity, getConverter().getMappingContext(), getConverter().getConversionService());
+        return source.isVersionedEntity() ? source.initializeVersionProperty() : entity;
+    }
+
+    /**
+     * Prepare entity to use in update operation
+     * @param entity just entity to prepare
+     * @param <T> entity class parameter
+     * @return prepared entity
+     */
+    default <T> T entityToUpdate(T entity) {
+        AdaptableEntity<T> source = AdaptableMappedEntity.of(entity, getConverter().getMappingContext(), getConverter().getConversionService());
+        if (source.isVersionedEntity()) {
+            return source.incrementVersion();
+        } else {
+            return entity;
+        }
+    }
+
+    /**
+     * Prepare Tarantool value converter to use in call operations
+     * @param mapper Tarantool MessagePackMapper mapper to use
+     * @param entityClass entity class to use
+     * @param <T> entity class parameter
+     * @return value converter
+     */
     default <T> ValueConverter<Value, T> valueConverter(MessagePackMapper mapper, Class<T> entityClass) {
         if (TarantoolSimpleTypeHolder.HOLDER.isSimpleType(entityClass)) {
             return value -> mapper.fromValue(value, entityClass);

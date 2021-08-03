@@ -57,7 +57,7 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
     private final TarantoolConverter tarantoolConverter;
     private final TarantoolExceptionTranslator exceptionTranslator;
     private final MessagePackMapper messagePackMapper;
-    private final IndexQueryCreator indexQueryCreator;
+    private final TarantoolTupleMethodsHelper tupleMethodsHelper;
     private @Nullable ReactiveEntityCallbacks entityCallbacks;
 
     public ReactiveTarantoolTemplate(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient) {
@@ -71,7 +71,7 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
         this.tarantoolConverter = tarantoolConverter;
         this.exceptionTranslator = exceptionTranslator;
         this.messagePackMapper = tarantoolClient.getConfig().getMessagePackMapper();
-        this.indexQueryCreator = new IndexQueryCreator(tarantoolConverter, this);
+        this.tupleMethodsHelper = new TarantoolTupleMethodsHelper(tarantoolConverter, this);
     }
 
     @Override
@@ -121,7 +121,7 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
         Assert.notNull(id, "Id must not be null");
         Assert.notNull(entityClass, "Entity class must not be null");
 
-        Conditions query = indexQueryCreator.primaryIndexQueryById(id, entityClass);
+        Conditions query = tupleMethodsHelper.primaryIndexQueryById(id, entityClass);
         return selectOne(query, entityClass);
     }
 
@@ -182,9 +182,7 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
         Assert.notNull(entity, "Entity must not be null");
         Assert.notNull(entityClass, "Entity class must not be null");
 
-        AdaptableEntity<T> source = AdaptableMappedEntity.of(entity, tarantoolConverter.getMappingContext(), tarantoolConverter.getConversionService());
-        T entityToUse = source.isVersionedEntity() ? source.initializeVersionProperty() : entity;
-
+        T entityToUse = entityToInsert(entity);
         String spaceName = spaceName(entityClass);
         TarantoolSpaceMetadata spaceMetadata = spaceMetadata(entityClass).orElseThrow(() -> new MappingException(String.format("Space metadata not found for space %s", spaceName)));
         return maybeCallBeforeConvert(entityToUse, spaceName)
@@ -232,26 +230,14 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
                     return maybeCallBeforeSave(ent, tuple, spaceName)
                             .map(e -> tuple);
                 })
-                .map(tuple -> {
-                    AtomicReference<TupleOperations> operations = new AtomicReference<>();
-                    TupleOperations.fromTarantoolTuple(tuple).asList().stream()
-                            .filter(operation -> !(operation.getValue() instanceof TarantoolNullField))
-                            .forEach(operation -> {
-                                if (operations.get() == null) {
-                                    operations.set(TupleOperations.set(operation.getFieldIndex(), operation.getValue()));
-                                } else {
-                                    operations.get().addOperation(operation);
-                                }
-                            });
-                    return operations.get();
-                })
+                .map(tupleMethodsHelper::prepareUpdateOperations)
                 .flatMapMany(tupleOperations ->
                         execute(spaceName, spaceOps -> spaceOps.select(query))
                                 .publishOn(TARANTOOL_PARALLEL_SCHEDULER)
                                 .flatMapIterable(tuples -> tuples)
                                 .parallel(TARANTOOL_DEFAULT_POOL_SIZE)
                                 .runOn(TARANTOOL_PARALLEL_SCHEDULER)
-                                .map(tuple -> indexQueryCreator.primaryIndexQuery(tuple, entityClass))
+                                .map(tuple -> tupleMethodsHelper.primaryIndexQuery(tuple, entityClass))
                                 .flatMap(conditions -> execute(spaceName, spaceOps -> spaceOps.update(conditions, tupleOperations)))
                                 .filter(tuples -> tuples.size() > 0)
                                 .map(tuples -> tupleToEntity(tuples.get(0), entityClass))
@@ -259,21 +245,12 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
                 );
     }
 
-    private <T> T entityToUpdate(T entity) {
-        AdaptableEntity<T> source = AdaptableMappedEntity.of(entity, tarantoolConverter.getMappingContext(), tarantoolConverter.getConversionService());
-        if (source.isVersionedEntity()) {
-            return source.incrementVersion();
-        } else {
-            return entity;
-        }
-    }
-
     @Override
     public <T> Mono<T> delete(T entity, Class<T> entityClass) {
         Assert.notNull(entity, "Entity must not be null");
         Assert.notNull(entityClass, "Entity class must not be null");
 
-        Conditions query = indexQueryCreator.primaryIndexQuery(entity);
+        Conditions query = tupleMethodsHelper.primaryIndexQuery(entity);
         return execute(entityClass, spaceOps -> spaceOps.delete(query))
                 .filter(tuples -> tuples.size() > 0)
                 .map(tuples -> tupleToEntity(tuples.get(0), entityClass));
@@ -290,7 +267,7 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
                 .flatMapIterable(tuples -> tuples)
                 .parallel(TARANTOOL_DEFAULT_POOL_SIZE)
                 .runOn(TARANTOOL_PARALLEL_SCHEDULER)
-                .map(tuple -> indexQueryCreator.primaryIndexQuery(tuple, entityClass))
+                .map(tuple -> tupleMethodsHelper.primaryIndexQuery(tuple, entityClass))
                 .flatMap(conditions -> execute(spaceName, spaceOps -> spaceOps.delete(conditions)))
                 .filter(tuples -> tuples.size() > 0)
                 .map(tuples -> tupleToEntity(tuples.get(0), entityClass))
@@ -302,7 +279,7 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
         Assert.notNull(id, "Id must not be null");
         Assert.notNull(entityClass, "Entity class must not be null");
 
-        Conditions query = indexQueryCreator.primaryIndexQueryById(id, entityClass);
+        Conditions query = tupleMethodsHelper.primaryIndexQueryById(id, entityClass);
         return execute(entityClass, spaceOps -> spaceOps.delete(query))
                 .filter(tuples -> tuples.size() > 0)
                 .map(tuples -> tupleToEntity(tuples.get(0), entityClass));
