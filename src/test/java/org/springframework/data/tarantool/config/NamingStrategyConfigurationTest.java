@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.tarantool.core.TarantoolOperations;
 import org.springframework.data.tarantool.core.convert.TarantoolConverter;
 import org.springframework.data.tarantool.core.mapping.BasicTarantoolPersistentEntity;
 import org.springframework.data.tarantool.core.mapping.Field;
@@ -15,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class NamingStrategyConfigurationTest {
 
     @Configuration
-    static class Config extends AbstractReactiveTarantoolConfiguration {
+    static class Config extends TarantoolConfigurationSupport {
 
     }
 

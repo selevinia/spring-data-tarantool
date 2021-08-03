@@ -6,6 +6,14 @@ import org.springframework.context.annotation.ClassPathScanningCandidateComponen
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.data.mapping.model.FieldNamingStrategy;
 import org.springframework.data.mapping.model.SnakeCaseFieldNamingStrategy;
+import org.springframework.data.tarantool.config.client.DefaultTarantoolClientFactory;
+import org.springframework.data.tarantool.config.client.DefaultTarantoolClientOptions;
+import org.springframework.data.tarantool.config.client.TarantoolClientFactory;
+import org.springframework.data.tarantool.config.client.TarantoolClientOptions;
+import org.springframework.data.tarantool.core.DefaultTarantoolExceptionTranslator;
+import org.springframework.data.tarantool.core.TarantoolExceptionTranslator;
+import org.springframework.data.tarantool.core.convert.MappingTarantoolConverter;
+import org.springframework.data.tarantool.core.convert.TarantoolConverter;
 import org.springframework.data.tarantool.core.convert.TarantoolCustomConversions;
 import org.springframework.data.tarantool.core.mapping.PrimaryKeyClass;
 import org.springframework.data.tarantool.core.mapping.Space;
@@ -22,6 +30,53 @@ import java.util.*;
  * @author Alexander Rublev
  */
 public abstract class TarantoolConfigurationSupport {
+
+    /**
+     * Creates {@link TarantoolClientFactory} to produce Tarantool Client using driver
+     *
+     * @param tarantoolClientOptions {@link TarantoolClientOptions} bean already created
+     * @return TarantoolClientFactory bean
+     */
+    @Bean
+    public TarantoolClientFactory tarantoolClientFactory(TarantoolClientOptions tarantoolClientOptions) {
+        return new DefaultTarantoolClientFactory(tarantoolClientOptions);
+    }
+
+    /**
+     * Creates {@link TarantoolClientOptions} default implementation. Override this method to provide real options
+     *
+     * @see #tarantoolClientFactory(TarantoolClientOptions)
+     * @return TarantoolClientOptions bean (default if this case)
+     */
+    @Bean
+    public TarantoolClientOptions tarantoolClientOptions() {
+        return new DefaultTarantoolClientOptions();
+    }
+
+    /**
+     * Creates a {@link MappingTarantoolConverter} instance for the specified type conversions
+     *
+     * @param tarantoolCustomConversions {@link TarantoolCustomConversions} bean already created
+     * @param tarantoolMappingContext {@link TarantoolMappingContext} bean already created
+     * @return {@link TarantoolConverter} bean
+     */
+    @Bean
+    public TarantoolConverter tarantoolConverter(TarantoolMappingContext tarantoolMappingContext, TarantoolCustomConversions tarantoolCustomConversions) {
+        MappingTarantoolConverter converter = new MappingTarantoolConverter(tarantoolMappingContext);
+        converter.setCustomConversions(tarantoolCustomConversions);
+        converter.afterPropertiesSet();
+        return converter;
+    }
+
+    /**
+     * Creates the default driver-to-Spring exception translator
+     *
+     * @return {@link TarantoolExceptionTranslator} bean
+     */
+    @Bean
+    public TarantoolExceptionTranslator tarantoolExceptionTranslator() {
+        return new DefaultTarantoolExceptionTranslator();
+    }
 
     /**
      * Returns the base packages to scan for Tarantool mapped entities at startup. Will return the package name of the
