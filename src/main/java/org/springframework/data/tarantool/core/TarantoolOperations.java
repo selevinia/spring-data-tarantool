@@ -188,6 +188,7 @@ public interface TarantoolOperations extends TarantoolConverterAware, TarantoolC
      * @param entityClass  Desired type of the result object
      * @return function call result
      */
+    @Nullable
     <T> T call(String functionName, Object[] parameters, Class<T> entityClass);
 
     /**
@@ -200,6 +201,7 @@ public interface TarantoolOperations extends TarantoolConverterAware, TarantoolC
      * @param entityConverter converter from MessagePack value to the result entity type
      * @return function call result
      */
+    @Nullable
     <T> T call(String functionName, Object[] parameters, ValueConverter<Value, T> entityConverter);
 
     /**
@@ -211,6 +213,7 @@ public interface TarantoolOperations extends TarantoolConverterAware, TarantoolC
      * @param entityClass  Desired type of the result object
      * @return function call result
      */
+    @Nullable
     <T> T call(String functionName, List<?> parameters, Class<T> entityClass);
 
     /**
@@ -223,6 +226,7 @@ public interface TarantoolOperations extends TarantoolConverterAware, TarantoolC
      * @param entityConverter converter from MessagePack value to the result entity type
      * @return function call result
      */
+    @Nullable
     <T> T call(String functionName, List<?> parameters, ValueConverter<Value, T> entityConverter);
 
     /**
@@ -233,6 +237,7 @@ public interface TarantoolOperations extends TarantoolConverterAware, TarantoolC
      * @param entityClass  Desired type of the result object
      * @return function call result
      */
+    @Nullable
     <T> T call(String functionName, Class<T> entityClass);
 
     /**
@@ -244,6 +249,7 @@ public interface TarantoolOperations extends TarantoolConverterAware, TarantoolC
      * @param entityConverter converter from MessagePack value to the result entity type
      * @return function call result
      */
+    @Nullable
     <T> T call(String functionName, ValueConverter<Value, T> entityConverter);
 
     /**

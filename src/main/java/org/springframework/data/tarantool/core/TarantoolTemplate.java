@@ -7,6 +7,7 @@ import io.tarantool.driver.api.conditions.Conditions;
 import io.tarantool.driver.api.space.TarantoolSpaceOperations;
 import io.tarantool.driver.api.tuple.TarantoolTuple;
 import io.tarantool.driver.mappers.MessagePackMapper;
+import io.tarantool.driver.mappers.TarantoolTupleSingleResultMapperFactory;
 import io.tarantool.driver.mappers.ValueConverter;
 import io.tarantool.driver.metadata.TarantoolSpaceMetadata;
 import org.msgpack.value.Value;
@@ -24,10 +25,7 @@ import org.springframework.data.tarantool.core.mapping.event.BeforeSaveCallback;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -240,7 +238,14 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         Assert.notNull(query, "Query must not be null");
         Assert.notNull(entityClass, "Entity class must not be null");
 
-        return null;//TODO should be implemented
+        String spaceName = spaceName(entityClass);
+        return unwrap(execute(spaceName, spaceOps -> spaceOps.select(query))).stream()
+                .map(tuple -> {
+                    Conditions conditions = indexQueryCreator.primaryIndexQuery(tuple, entityClass);
+                    return unwrap(execute(spaceName, spaceOps -> spaceOps.delete(conditions)));
+                })
+                .map(t -> tupleToEntity(t, entityClass))
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -282,12 +287,28 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         Assert.notNull(parameters, "Parameters must not be null");
         Assert.notNull(entityClass, "Entity class must not be null");
 
-        return null;//TODO should be implemented
+        Optional<TarantoolSpaceMetadata> spaceMetadata = spaceMetadata(entityClass);
+        if (spaceMetadata.isPresent()) {
+            TarantoolTupleSingleResultMapperFactory resultMapperFactory = tarantoolClient.getResultMapperFactoryFactory().defaultTupleSingleResultMapperFactory();
+            return unwrap(execute(() -> tarantoolClient.callForSingleResult(functionName, mappedTValues(parameters), messagePackMapper,
+                    resultMapperFactory.withDefaultTupleValueConverter(messagePackMapper, spaceMetadata.orElse(null))))).stream()
+                    .findFirst()
+                    .map(tuples -> tupleToEntity(tuples, entityClass))
+                    .orElse(null);
+        } else {
+            return call(functionName, parameters, valueConverter(messagePackMapper, entityClass));
+        }
     }
 
     @Override
     public <T> T call(String functionName, List<?> parameters, ValueConverter<Value, T> entityConverter) {
-        return null;//TODO should be implemented
+        Assert.hasText(functionName, "Function name must not be null or empty");
+        Assert.notNull(parameters, "Parameters must not be null");
+        Assert.notNull(entityConverter, "Entity converter must not be null");
+
+        ValueConverter<Value, Value> converter = value -> value.isNilValue() ? null : value;
+        Value value = unwrap(execute(() -> tarantoolClient.callForSingleResult(functionName, mappedTValues(parameters), messagePackMapper, converter)));
+        return entityConverter.fromValue(value);
     }
 
     @Override
@@ -312,12 +333,24 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
 
     @Override
     public <T> List<T> callForAll(String functionName, List<?> parameters, Class<T> entityClass) {
-        return null;//TODO should be implemented
+        Optional<TarantoolSpaceMetadata> spaceMetadata = spaceMetadata(entityClass);
+        if (spaceMetadata.isPresent()) {
+            TarantoolTupleSingleResultMapperFactory resultMapperFactory = tarantoolClient.getResultMapperFactoryFactory().defaultTupleSingleResultMapperFactory();
+            return unwrap(execute(() -> tarantoolClient.callForSingleResult(functionName, mappedTValues(parameters), messagePackMapper,
+                    resultMapperFactory.withDefaultTupleValueConverter(messagePackMapper, spaceMetadata.orElse(null))))).stream()
+                    .map(tuple -> tupleToEntity(tuple, entityClass))
+                    .collect(Collectors.toList());
+        } else {
+            return callForAll(functionName, parameters, value -> tupleToEntity(messagePackMapper.fromValue(value, Map.class), entityClass));
+        }
     }
 
     @Override
     public <T> List<T> callForAll(String functionName, List<?> parameters, ValueConverter<Value, T> entityConverter) {
-        return null;//TODO should be implemented
+        ValueConverter<Value, List<Value>> converter = value -> value.isNilValue() ? null : value.asArrayValue().list();
+        return unwrap(execute(() -> tarantoolClient.callForSingleResult(functionName, mappedTValues(parameters), messagePackMapper, converter))).stream()
+                .map(entityConverter::fromValue)
+                .collect(Collectors.toList());
     }
 
     @Override

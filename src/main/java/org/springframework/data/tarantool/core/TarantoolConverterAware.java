@@ -3,10 +3,14 @@ package org.springframework.data.tarantool.core;
 import io.tarantool.driver.api.tuple.TarantoolTuple;
 import io.tarantool.driver.api.tuple.TarantoolTupleImpl;
 import io.tarantool.driver.mappers.MessagePackMapper;
+import io.tarantool.driver.mappers.ValueConverter;
 import io.tarantool.driver.metadata.TarantoolSpaceMetadata;
+import org.msgpack.value.Value;
 import org.springframework.data.tarantool.core.convert.TarantoolConverter;
+import org.springframework.data.tarantool.core.mapping.TarantoolSimpleTypeHolder;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Common interface to accumulate methods to interact with TarantoolConverter
@@ -28,7 +32,7 @@ public interface TarantoolConverterAware {
      * @param <T> entity class parameter
      * @return name of space
      */
-    default  <T> String spaceName(Class<T> entityClass) {
+    default <T> String spaceName(Class<T> entityClass) {
         return getConverter().getMappingContext().getRequiredPersistentEntity(entityClass).getSpaceName();
     }
 
@@ -40,7 +44,7 @@ public interface TarantoolConverterAware {
      * @param <T> entity class parameter
      * @return Tarantool tuple
      */
-    default  <T> TarantoolTuple entityToTuple(T entity, MessagePackMapper mapper, TarantoolSpaceMetadata spaceMetadata) {
+    default <T> TarantoolTuple entityToTuple(T entity, MessagePackMapper mapper, TarantoolSpaceMetadata spaceMetadata) {
         TarantoolTuple tuple = new TarantoolTupleImpl(mapper, spaceMetadata);
         getConverter().write(entity, tuple);
         return tuple;
@@ -53,7 +57,7 @@ public interface TarantoolConverterAware {
      * @param <T> entity class parameter
      * @return converted entity
      */
-    default  <T> T tupleToEntity(Object tuple, Class<T> entityClass) {
+    default <T> T tupleToEntity(Object tuple, Class<T> entityClass) {
         return getConverter().read(entityClass, tuple);
     }
 
@@ -66,4 +70,11 @@ public interface TarantoolConverterAware {
         return (List<?>) getConverter().convertToWritableType(values);
     }
 
+    default <T> ValueConverter<Value, T> valueConverter(MessagePackMapper mapper, Class<T> entityClass) {
+        if (TarantoolSimpleTypeHolder.HOLDER.isSimpleType(entityClass)) {
+            return value -> mapper.fromValue(value, entityClass);
+        } else {
+            return value -> tupleToEntity(mapper.fromValue(value, Map.class), entityClass);
+        }
+    }
 }

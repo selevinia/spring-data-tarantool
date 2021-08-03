@@ -25,7 +25,6 @@ import org.springframework.data.mapping.callback.EntityCallbacks;
 import org.springframework.data.mapping.callback.ReactiveEntityCallbacks;
 import org.springframework.data.tarantool.core.convert.TarantoolConverter;
 import org.springframework.data.tarantool.core.mapping.TarantoolPersistentEntity;
-import org.springframework.data.tarantool.core.mapping.TarantoolSimpleTypeHolder;
 import org.springframework.data.tarantool.core.mapping.event.ReactiveBeforeConvertCallback;
 import org.springframework.data.tarantool.core.mapping.event.ReactiveBeforeSaveCallback;
 import org.springframework.lang.Nullable;
@@ -351,13 +350,7 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
                     .filter(tuples -> tuples.size() > 0)
                     .map(tuples -> tupleToEntity(tuples.get(0), entityClass));
         } else {
-            ValueConverter<Value, T> valueConverter;
-            if (TarantoolSimpleTypeHolder.HOLDER.isSimpleType(entityClass)) {
-                valueConverter = value -> messagePackMapper.fromValue(value, entityClass);
-            } else {
-                valueConverter = value -> tupleToEntity(messagePackMapper.fromValue(value, Map.class), entityClass);
-            }
-            return call(functionName, parameters, valueConverter);
+            return call(functionName, parameters, valueConverter(messagePackMapper, entityClass));
         }
     }
 
