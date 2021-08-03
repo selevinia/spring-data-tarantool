@@ -176,7 +176,9 @@ public class ReactiveTarantoolTemplateTest extends AbstractTarantoolTemplateTest
         });
 
         reactiveTarantoolTemplate.selectByIds(Flux.just("1", "2", "3"), Message.class).as(StepVerifier::create)
-                .expectNext(messageOne, messageTwo, messageThree)
+                .thenConsumeWhile(messageOne::equals)
+                .thenConsumeWhile(messageTwo::equals)
+                .thenConsumeWhile(messageThree::equals)
                 .verifyComplete();
 
         verify(tarantoolClient, times(3)).space(any());
