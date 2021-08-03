@@ -172,6 +172,7 @@ public interface ReactiveTarantoolOperations extends TarantoolConverterAware, Ta
      * The space is determined automatically from the entity class.
      *
      * @param entityClass Desired type of the result object
+     * @param <T> target entity type
      * @return {@code true} if space truncated, otherwise {@code Mono.error}
      */
     <T> Mono<Boolean> truncate(Class<T> entityClass);

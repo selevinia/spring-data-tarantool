@@ -28,7 +28,9 @@ public class TarantoolTupleMethodsHelper {
 
     /**
      * Create new IndexQueryCreator
+     *
      * @param tarantoolConverter tarantool converter to use
+     * @param tarantoolConverterAware helper class which should be aware of converter
      */
     public TarantoolTupleMethodsHelper(TarantoolConverter tarantoolConverter, TarantoolConverterAware tarantoolConverterAware) {
         Assert.notNull(tarantoolConverter, "TarantoolConverter must not be null");

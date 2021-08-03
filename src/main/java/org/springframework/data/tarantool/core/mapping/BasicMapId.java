@@ -46,6 +46,8 @@ public class BasicMapId implements MapId {
     /**
      * Factory method. Convenient if imported statically.
      *
+     * @param name name of simple key
+     * @param value value for name provided
      * @return {@link BasicMapId}
      */
     public static MapId id(String name, Object value) {
@@ -55,6 +57,7 @@ public class BasicMapId implements MapId {
     /**
      * Factory method. Convenient if imported statically.
      *
+     * @param id {@link MapId} to wrap
      * @return {@link BasicMapId}
      */
     public static MapId id(MapId id) {

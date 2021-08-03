@@ -5,7 +5,7 @@ import org.springframework.data.repository.core.EntityMetadata;
 /**
  * Extension of {@link EntityMetadata} to additionally expose the Tarantool space name an entity shall be persisted to.
  *
- * @param <T>
+ * @param <T> type to ger metadata
  * @author Alexander Rublev
  */
 public interface TarantoolEntityMetadata<T> extends EntityMetadata<T> {

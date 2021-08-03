@@ -37,6 +37,7 @@ public class TarantoolQueryMethod extends QueryMethod {
      * @param method   must not be {@literal null}.
      * @param metadata must not be {@literal null}.
      * @param factory  must not be {@literal null}.
+     * @param mappingContext must not be {@literal null}
      */
     public TarantoolQueryMethod(Method method, RepositoryMetadata metadata, ProjectionFactory factory,
                                 MappingContext<? extends TarantoolPersistentEntity<?>, ? extends TarantoolPersistentProperty> mappingContext) {
@@ -72,6 +73,8 @@ public class TarantoolQueryMethod extends QueryMethod {
 
     /**
      * Returns whether the method has an annotated query function.
+     *
+     * @return true if Query annotation present
      */
     public boolean hasAnnotatedQuery() {
         return this.query.map(Query::function).filter(StringUtils::hasText).isPresent();

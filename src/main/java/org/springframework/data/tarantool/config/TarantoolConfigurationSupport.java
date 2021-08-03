@@ -77,7 +77,8 @@ public abstract class TarantoolConfigurationSupport {
      * Scans the mapping base package for classes annotated with {@link Space}. By default, it scans for entities in
      * all packages returned by {@link #getMappingBasePackages()}.
      *
-     * @throws ClassNotFoundException
+     * @return set of initial entities
+     * @throws ClassNotFoundException if class not found
      * @see #getMappingBasePackages()
      */
     protected Set<Class<?>> getInitialEntitySet() throws ClassNotFoundException {
@@ -93,8 +94,9 @@ public abstract class TarantoolConfigurationSupport {
     /**
      * Scans the given base package for entities, i.e. Tarantool specific types annotated with {@link Space} and {@link PrimaryKeyClass}.
      *
+     * @return set of entities was found
      * @param basePackage must not be {@literal null}.
-     * @throws ClassNotFoundException
+     * @throws ClassNotFoundException if class not found
      */
     protected Set<Class<?>> scanForEntities(String basePackage) throws ClassNotFoundException {
         if (!StringUtils.hasText(basePackage)) {
@@ -114,6 +116,8 @@ public abstract class TarantoolConfigurationSupport {
 
     /**
      * Configures a {@link FieldNamingStrategy} on the {@link TarantoolMappingContext} instance created.
+     *
+     * @return default field naming strategy
      */
     protected FieldNamingStrategy fieldNamingStrategy() {
         return new SnakeCaseFieldNamingStrategy();

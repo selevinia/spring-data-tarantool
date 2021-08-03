@@ -19,6 +19,8 @@ public class Query {
 
     /**
      * Create new query with limited conditions
+     *
+     * @param limit max number of rows to return
      */
     public Query(int limit) {
         conditions = Conditions.limit(limit);

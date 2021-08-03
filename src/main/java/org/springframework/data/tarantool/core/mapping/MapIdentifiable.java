@@ -11,6 +11,8 @@ public interface MapIdentifiable {
     /**
      * Gets the identity of this instance.
      * {@link MapId}.
+     *
+     * @return identity of this instance
      */
     MapId getMapId();
 }

@@ -38,6 +38,8 @@ public class IdInterfaceExceptions extends MappingException {
 
     /**
      * Returns a list of the {@link IdInterfaceException}s aggregated within.
+     *
+     * @return list of exceptions
      */
     public Collection<MappingException> getExceptions() {
         return exceptions;
@@ -45,6 +47,8 @@ public class IdInterfaceExceptions extends MappingException {
 
     /**
      * Returns a list of the {@link IdInterfaceException} messages aggregated within.
+     *
+     * @return list of exception messages
      */
     public Collection<String> getMessages() {
         return exceptions.stream().map(Throwable::getMessage).collect(Collectors.toList());
@@ -52,6 +56,8 @@ public class IdInterfaceExceptions extends MappingException {
 
     /**
      * Returns the number of exceptions aggregated in this exception.
+     *
+     * @return number of exceptions
      */
     public int getCount() {
         return exceptions.size();

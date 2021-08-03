@@ -175,6 +175,7 @@ public interface TarantoolOperations extends TarantoolConverterAware, TarantoolC
      * The space is determined automatically from the entity class.
      *
      * @param entityClass Desired type of the result object
+     * @param <T> type of entity to truncate corresponding space
      * @return {@code true} if space truncated, otherwise throws exception
      */
     <T> boolean truncate(Class<T> entityClass);

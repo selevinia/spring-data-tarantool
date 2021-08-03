@@ -30,6 +30,9 @@ public abstract class AbstractReactiveTarantoolConfiguration extends TarantoolCo
     /**
      * Creates {@link ReactiveTarantoolOperations}.
      *
+     * @param tarantoolClientFactory {@link TarantoolClientFactory} instance to use
+     * @param tarantoolConverter {@link TarantoolConverter} instance to use
+     * @param tarantoolExceptionTranslator {@link TarantoolExceptionTranslator} instance to use
      * @return never {@literal null}.
      * @see #tarantoolClientOptions()
      * @see #tarantoolConverter(TarantoolMappingContext, TarantoolCustomConversions)
@@ -45,6 +48,9 @@ public abstract class AbstractReactiveTarantoolConfiguration extends TarantoolCo
 
     /**
      * Creates {@link TarantoolClientFactory} to produce Tarantool Client using driver
+     *
+     * @param tarantoolClientOptions {@link TarantoolClientOptions} bean already created
+     * @return TarantoolClientFactory bean
      */
     @Bean
     public TarantoolClientFactory tarantoolClientFactory(TarantoolClientOptions tarantoolClientOptions) {
@@ -55,6 +61,7 @@ public abstract class AbstractReactiveTarantoolConfiguration extends TarantoolCo
      * Creates {@link TarantoolClientOptions} default implementation. Override this method to provide real options
      *
      * @see #tarantoolClientFactory(TarantoolClientOptions)
+     * @return TarantoolClientOptions bean (default if this case)
      */
     @Bean
     public TarantoolClientOptions tarantoolClientOptions() {
@@ -63,6 +70,10 @@ public abstract class AbstractReactiveTarantoolConfiguration extends TarantoolCo
 
     /**
      * Creates a {@link MappingTarantoolConverter} instance for the specified type conversions
+     *
+     * @param tarantoolCustomConversions {@link TarantoolCustomConversions} bean already created
+     * @param tarantoolMappingContext {@link TarantoolMappingContext} bean already created
+     * @return {@link TarantoolConverter} bean
      */
     @Bean
     public TarantoolConverter tarantoolConverter(TarantoolMappingContext tarantoolMappingContext, TarantoolCustomConversions tarantoolCustomConversions) {
@@ -74,6 +85,8 @@ public abstract class AbstractReactiveTarantoolConfiguration extends TarantoolCo
 
     /**
      * Creates the default driver-to-Spring exception translator
+     *
+     * @return {@link TarantoolExceptionTranslator} bean
      */
     @Bean
     public TarantoolExceptionTranslator tarantoolExceptionTranslator() {

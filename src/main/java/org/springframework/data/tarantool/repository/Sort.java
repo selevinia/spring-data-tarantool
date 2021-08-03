@@ -20,7 +20,7 @@ public class Sort {
     /**
      * Returns whether sorting will be ascending.
      *
-     * @return
+     * @return true if sorting will be ascending
      */
     public boolean isAscending() {
         return this.direction.isAscending();
@@ -29,7 +29,7 @@ public class Sort {
     /**
      * Returns whether sorting will be descending.
      *
-     * @return
+     * @return true if sorting will be descending
      */
     public boolean isDescending() {
         return this.direction.isDescending();
@@ -53,7 +53,7 @@ public class Sort {
         /**
          * Returns whether the direction is ascending.
          *
-         * @return
+         * @return true if direction is ascending
          */
         public boolean isAscending() {
             return this.equals(ASC);
@@ -62,7 +62,7 @@ public class Sort {
         /**
          * Returns whether the direction is descending.
          *
-         * @return
+         * @return true if direction is descending
          */
         public boolean isDescending() {
             return this.equals(DESC);
