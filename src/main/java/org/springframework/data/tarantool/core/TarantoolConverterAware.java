@@ -28,8 +28,9 @@ public interface TarantoolConverterAware {
 
     /**
      * Determine name of Tarantool space
+     *
      * @param entityClass entity class to use
-     * @param <T> entity class parameter
+     * @param <T>         entity class parameter
      * @return name of space
      */
     default <T> String spaceName(Class<T> entityClass) {
@@ -38,10 +39,11 @@ public interface TarantoolConverterAware {
 
     /**
      * Convert entity to Tarantool tuple
-     * @param entity entity instance to convert
-     * @param mapper Tarantool MessagePackMapper mapper to use
+     *
+     * @param entity        entity instance to convert
+     * @param mapper        Tarantool MessagePackMapper mapper to use
      * @param spaceMetadata Tarantool Space Metadata for corresponding entity
-     * @param <T> entity class parameter
+     * @param <T>           entity class parameter
      * @return Tarantool tuple
      */
     default <T> TarantoolTuple entityToTuple(T entity, MessagePackMapper mapper, TarantoolSpaceMetadata spaceMetadata) {
@@ -52,9 +54,10 @@ public interface TarantoolConverterAware {
 
     /**
      * Convert Tarantool tuple to entity
-     * @param tuple Tarantool tuple to convert
+     *
+     * @param tuple       Tarantool tuple to convert
      * @param entityClass entity class to use
-     * @param <T> entity class parameter
+     * @param <T>         entity class parameter
      * @return converted entity
      */
     default <T> T tupleToEntity(Object tuple, Class<T> entityClass) {
@@ -63,6 +66,7 @@ public interface TarantoolConverterAware {
 
     /**
      * Convert multiple values to Tarantool writable objects
+     *
      * @param values list of values to convert
      * @return list of Tarantool objects
      */
@@ -72,8 +76,9 @@ public interface TarantoolConverterAware {
 
     /**
      * Prepare entity to use in insert operation
+     *
      * @param entity just entity to prepare
-     * @param <T> entity class parameter
+     * @param <T>    entity class parameter
      * @return prepared entity
      */
     default <T> T entityToInsert(T entity) {
@@ -83,8 +88,9 @@ public interface TarantoolConverterAware {
 
     /**
      * Prepare entity to use in update operation
+     *
      * @param entity just entity to prepare
-     * @param <T> entity class parameter
+     * @param <T>    entity class parameter
      * @return prepared entity
      */
     default <T> T entityToUpdate(T entity) {
@@ -98,9 +104,10 @@ public interface TarantoolConverterAware {
 
     /**
      * Prepare Tarantool value converter to use in call operations
-     * @param mapper Tarantool MessagePackMapper mapper to use
+     *
+     * @param mapper      Tarantool MessagePackMapper mapper to use
      * @param entityClass entity class to use
-     * @param <T> entity class parameter
+     * @param <T>         entity class parameter
      * @return value converter
      */
     default <T> ValueConverter<Value, T> valueConverter(MessagePackMapper mapper, Class<T> entityClass) {

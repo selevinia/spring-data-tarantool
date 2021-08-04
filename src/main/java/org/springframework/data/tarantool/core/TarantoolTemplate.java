@@ -20,6 +20,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataRetrievalFailureException;
 import org.springframework.data.mapping.MappingException;
 import org.springframework.data.mapping.callback.EntityCallbacks;
+import org.springframework.data.tarantool.TarantoolServerConnectionException;
 import org.springframework.data.tarantool.core.convert.MappingTarantoolConverter;
 import org.springframework.data.tarantool.core.convert.TarantoolConverter;
 import org.springframework.data.tarantool.core.mapping.TarantoolPersistentEntity;
@@ -186,7 +187,7 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         String spaceName = spaceName(entityClass);
         T entityToUse = entityToInsert(entity);
 
-        TarantoolSpaceMetadata spaceMetadata = spaceMetadata(entityClass).orElseThrow(() -> new MappingException(String.format("Space metadata not found for space %s", spaceName)));
+        TarantoolSpaceMetadata spaceMetadata = requiredSpaceMetadata(entityClass);
         TarantoolTuple tuple = entityToTuple(maybeCallBeforeConvert(entityToUse, spaceName), messagePackMapper, spaceMetadata);
         maybeCallBeforeSave(entityToUse, tuple, spaceName);
 
@@ -204,7 +205,7 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         String spaceName = spaceName(entityClass);
         T entityToUse = entityToUpdate(entity);
 
-        TarantoolSpaceMetadata spaceMetadata = spaceMetadata(entityClass).orElseThrow(() -> new MappingException(String.format("Space metadata not found for space %s", spaceName)));
+        TarantoolSpaceMetadata spaceMetadata = requiredSpaceMetadata(entityClass);
         TarantoolTuple tuple = entityToTuple(maybeCallBeforeConvert(entityToUse, spaceName), messagePackMapper, spaceMetadata);
         maybeCallBeforeSave(entityToUse, tuple, spaceName);
 
@@ -223,7 +224,7 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         String spaceName = spaceName(entityClass);
         T entityToUse = entityToUpdate(entity);
 
-        TarantoolSpaceMetadata spaceMetadata = spaceMetadata(entityClass).orElseThrow(() -> new MappingException(String.format("Space metadata not found for space %s", spaceName)));
+        TarantoolSpaceMetadata spaceMetadata = requiredSpaceMetadata(entityClass);
         TarantoolTuple tuple = entityToTuple(maybeCallBeforeConvert(entityToUse, spaceName), messagePackMapper, spaceMetadata);
         maybeCallBeforeSave(entityToUse, tuple, spaceName);
 
@@ -410,12 +411,7 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         try {
             return supplier.get();
         } catch (Exception e) {
-            DataAccessException exception = exceptionTranslator.translateExceptionIfPossible((RuntimeException) e);
-            if (exception != null) {
-                throw exception;
-            } else {
-                throw e;
-            }
+            throw translateThrowable(e);
         }
     }
 
@@ -423,26 +419,24 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         try {
             return f.get();
         } catch (ExecutionException e) {
-            if (e.getCause() instanceof RuntimeException) {
-                DataAccessException dataAccessException = exceptionTranslator.translateExceptionIfPossible((RuntimeException) e.getCause());
-                if (dataAccessException != null) {
-                    throw dataAccessException;
-                }
-            }
-            throw new DataRetrievalFailureException(e.getMessage(), e.getCause());
+            throw translateThrowable(e.getCause());
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new TarantoolServerConnectionException(e.getMessage(), e);
         }
     }
 
-    private Throwable translateThrowable(Throwable throwable) {
+    private RuntimeException translateThrowable(Throwable throwable) {
         if (throwable instanceof RuntimeException) {
             DataAccessException dataAccessException = exceptionTranslator.translateExceptionIfPossible((RuntimeException) throwable);
             if (dataAccessException != null) {
                 return dataAccessException;
             }
         }
-        return throwable;
+        return new DataRetrievalFailureException(throwable.getMessage(), throwable);
+    }
+
+    private <T> TarantoolSpaceMetadata requiredSpaceMetadata(Class<T> entityClass) {
+        return spaceMetadata(entityClass).orElseThrow(() -> new MappingException(String.format("Space metadata not found for space entity %s", entityClass.getSimpleName())));
     }
 
     private <T> Optional<TarantoolSpaceMetadata> spaceMetadata(Class<T> entityClass) {

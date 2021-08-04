@@ -182,7 +182,7 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
 
         T entityToUse = entityToInsert(entity);
         String spaceName = spaceName(entityClass);
-        TarantoolSpaceMetadata spaceMetadata = spaceMetadata(entityClass).orElseThrow(() -> new MappingException(String.format("Space metadata not found for space %s", spaceName)));
+        TarantoolSpaceMetadata spaceMetadata = requiredSpaceMetadata(entityClass);
         return maybeCallBeforeConvert(entityToUse, spaceName)
                 .flatMap(ent -> {
                     TarantoolTuple tuple = entityToTuple(ent, messagePackMapper, spaceMetadata);
@@ -201,7 +201,7 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
 
         T entityToUse = entityToUpdate(entity);
         String spaceName = spaceName(entityClass);
-        TarantoolSpaceMetadata spaceMetadata = spaceMetadata(entityClass).orElseThrow(() -> new MappingException(String.format("Space metadata not found for space %s", spaceName)));
+        TarantoolSpaceMetadata spaceMetadata = requiredSpaceMetadata(entityClass);
         return maybeCallBeforeConvert(entityToUse, spaceName)
                 .flatMap(ent -> {
                     TarantoolTuple tuple = entityToTuple(ent, messagePackMapper, spaceMetadata);
@@ -221,7 +221,7 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
 
         T entityToUse = entityToUpdate(entity);
         String spaceName = spaceName(entityClass);
-        TarantoolSpaceMetadata spaceMetadata = spaceMetadata(entityClass).orElseThrow(() -> new MappingException(String.format("Space metadata not found for space %s", spaceName)));
+        TarantoolSpaceMetadata spaceMetadata = requiredSpaceMetadata(entityClass);
         return maybeCallBeforeConvert(entityToUse, spaceName)
                 .flatMap(ent -> {
                     TarantoolTuple tuple = entityToTuple(ent, messagePackMapper, spaceMetadata);
@@ -434,16 +434,11 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
         try {
             return supplier.get();
         } catch (Exception e) {
-            DataAccessException exception = exceptionTranslator.translateExceptionIfPossible((RuntimeException) e);
-            if (exception != null) {
-                throw exception;
-            } else {
-                throw e;
-            }
+            throw translateThrowable(e);
         }
     }
 
-    private Throwable translateThrowable(Throwable throwable) {
+    private RuntimeException translateThrowable(Throwable throwable) {
         if (throwable instanceof RuntimeException) {
             DataAccessException dataAccessException = exceptionTranslator.translateExceptionIfPossible((RuntimeException) throwable);
             if (dataAccessException != null) {
@@ -451,6 +446,10 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
             }
         }
         return new DataRetrievalFailureException(throwable.getMessage(), throwable);
+    }
+
+    private <T> TarantoolSpaceMetadata requiredSpaceMetadata(Class<T> entityClass) {
+        return spaceMetadata(entityClass).orElseThrow(() -> new MappingException(String.format("Space metadata not found for space entity %s", entityClass.getSimpleName())));
     }
 
     private <T> Optional<TarantoolSpaceMetadata> spaceMetadata(Class<T> entityClass) {
