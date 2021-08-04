@@ -16,6 +16,7 @@ import org.springframework.data.tarantool.core.mapping.TarantoolMappingContext;
 import org.springframework.data.tarantool.integration.domain.*;
 import reactor.test.StepVerifier;
 
+import java.io.Serializable;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
@@ -167,4 +168,194 @@ public abstract class AbstractTarantoolTemplateTest {
         assertWith(updated.get(0), articleAssertConsumer(article));
     }
 
+    @Test
+    void shouldUpdateArticles() {
+        Article article1 = article();
+        Article article2 = article();
+
+        tarantoolTemplate.insert(article1, Article.class);
+        tarantoolTemplate.insert(article2, Article.class);
+
+        Article partialArticle = Article.builder()
+                .slug("Single slug about tarantool")
+                .build();
+
+        List<Article> updated = tarantoolTemplate.update(Conditions.any(), partialArticle, Article.class);
+        assertThat(updated).hasSize(2);
+        updated.forEach(article -> assertThat(article.getSlug()).isEqualTo(partialArticle.getSlug()));
+    }
+
+    @Test
+    void shouldUpdateTranslatedArticle() {
+        TranslatedArticle translatedArticle = translatedArticle();
+
+        TranslatedArticle inserted = tarantoolTemplate.insert(translatedArticle, TranslatedArticle.class);
+        assertThat(inserted).isEqualTo(translatedArticle);
+
+        TranslatedArticle selected = tarantoolTemplate.selectById(translatedArticle.getId(), TranslatedArticle.class);
+        assertThat(selected).isEqualTo(translatedArticle);
+
+        TranslatedArticle partialTranslatedArticle = TranslatedArticle.builder()
+                .text("Simple article text")
+                .build();
+        List<? extends Serializable> translatedArticleIdParts = List.of(translatedArticle.getId().getArticleId(), translatedArticle.getId().getLocale().toLanguageTag());
+        List<TranslatedArticle> updated = tarantoolTemplate.update(Conditions.indexEquals(TarantoolIndexQuery.PRIMARY, translatedArticleIdParts), partialTranslatedArticle, TranslatedArticle.class);
+        assertWith(updated.get(0), result -> {
+            assertThat(result.getId()).isEqualTo(translatedArticle.getId());
+            assertThat(result.getName()).isEqualTo(translatedArticle.getName());
+            assertThat(result.getText()).isNotEqualTo(translatedArticle.getText());
+            assertThat(result.getText()).isEqualTo(partialTranslatedArticle.getText());
+        });
+    }
+
+    @Test
+    void shouldUpdateTranslatedArticleWithFlatKey() {
+        TranslatedArticleWithFlatKey translatedArticle = translatedArticleWithFlatKey();
+        MapId translatedArticleMapId = MapIdFactory.id(MapId.class)
+                .with("articleId", translatedArticle.getArticleId())
+                .with("locale", translatedArticle.getLocale());
+
+        TranslatedArticleWithFlatKey inserted = tarantoolTemplate.insert(translatedArticle, TranslatedArticleWithFlatKey.class);
+        assertThat(inserted).isEqualTo(translatedArticle);
+
+        TranslatedArticleWithFlatKey selected = tarantoolTemplate.selectById(translatedArticleMapId, TranslatedArticleWithFlatKey.class);
+        assertThat(selected).isEqualTo(translatedArticle);
+
+        TranslatedArticleWithFlatKey partialTranslatedArticle = TranslatedArticleWithFlatKey.builder()
+                .text("Simple article text")
+                .build();
+        List<? extends Serializable> translatedArticleIdParts = List.of(translatedArticle.getArticleId(), translatedArticle.getLocale().toLanguageTag());
+        List<TranslatedArticleWithFlatKey> updated = tarantoolTemplate.update(Conditions.indexEquals(TarantoolIndexQuery.PRIMARY, translatedArticleIdParts), partialTranslatedArticle, TranslatedArticleWithFlatKey.class);
+        assertWith(updated.get(0), result -> {
+            assertThat(result.getArticleId()).isEqualTo(translatedArticle.getArticleId());
+            assertThat(result.getLocale()).isEqualTo(translatedArticle.getLocale());
+            assertThat(result.getName()).isEqualTo(translatedArticle.getName());
+            assertThat(result.getText()).isNotEqualTo(translatedArticle.getText());
+            assertThat(result.getText()).isEqualTo(partialTranslatedArticle.getText());
+        });
+    }
+
+    @Test
+    void shouldUpdateTranslatedArticleWithMapId() {
+        TranslatedArticleWithMapId translatedArticle = translatedArticleWithMapId();
+
+        TranslatedArticleWithMapId inserted = tarantoolTemplate.insert(translatedArticle, TranslatedArticleWithMapId.class);
+        assertThat(inserted).isEqualTo(translatedArticle);
+
+        TranslatedArticleWithMapId selected = tarantoolTemplate.selectById(translatedArticle.getMapId(), TranslatedArticleWithMapId.class);
+        assertThat(selected).isEqualTo(translatedArticle);
+
+        TranslatedArticleWithMapId partialTranslatedArticle = TranslatedArticleWithMapId.builder()
+                .text("Simple article text")
+                .build();
+        List<? extends Serializable> translatedArticleIdParts = List.of(translatedArticle.getArticleId(), translatedArticle.getLocale().toLanguageTag());
+        List<TranslatedArticleWithMapId> updated = tarantoolTemplate.update(Conditions.indexEquals(TarantoolIndexQuery.PRIMARY, translatedArticleIdParts), partialTranslatedArticle, TranslatedArticleWithMapId.class);
+        assertWith(updated.get(0), result -> {
+            assertThat(result.getArticleId()).isEqualTo(translatedArticle.getArticleId());
+            assertThat(result.getLocale()).isEqualTo(translatedArticle.getLocale());
+            assertThat(result.getName()).isEqualTo(translatedArticle.getName());
+            assertThat(result.getText()).isNotEqualTo(translatedArticle.getText());
+            assertThat(result.getText()).isEqualTo(partialTranslatedArticle.getText());
+        });
+    }
+
+    @Test
+    void shouldCountArticles() {
+        Article article1 = simpleArticle();
+        Article article2 = simpleArticle();
+
+        tarantoolTemplate.insert(article1, Article.class);
+        tarantoolTemplate.insert(article2, Article.class);
+
+        Long count = tarantoolTemplate.count(Article.class);
+        assertThat(count).isEqualTo(2L);
+
+        count = tarantoolTemplate.count(Conditions.any(), Article.class);
+        assertThat(count).isEqualTo(2L);
+
+        count = tarantoolTemplate.count(Conditions.indexEquals(TarantoolIndexQuery.PRIMARY, List.of(article1.getId())), Article.class);
+        assertThat(count).isEqualTo(1L);
+    }
+
+    @Test
+    void shouldDeleteArticle() {
+        Article article1 = article();
+        Article article2 = article();
+
+        tarantoolTemplate.insert(article1, Article.class);
+        tarantoolTemplate.insert(article2, Article.class);
+
+        Long count = tarantoolTemplate.count(Article.class);
+        assertThat(count).isEqualTo(2L);
+
+        Article deleted = tarantoolTemplate.delete(article1, Article.class);
+        assertThat(deleted).isEqualTo(article1);
+
+        count = tarantoolTemplate.count(Article.class);
+        assertThat(count).isEqualTo(1L);
+
+        deleted = tarantoolTemplate.deleteById(article2.getId(), Article.class);
+        assertThat(deleted).isEqualTo(article2);
+
+        count = tarantoolTemplate.count(Article.class);
+        assertThat(count).isEqualTo(0L);
+    }
+
+    @Test
+    void shouldDeleteTranslatedArticle() {
+        TranslatedArticle translatedArticle1 = translatedArticle();
+        TranslatedArticle translatedArticle2 = translatedArticle();
+
+        tarantoolTemplate.insert(translatedArticle1, TranslatedArticle.class);
+        tarantoolTemplate.insert(translatedArticle2, TranslatedArticle.class);
+
+        Long count = tarantoolTemplate.count(TranslatedArticle.class);
+        assertThat(count).isEqualTo(2L);
+
+        TranslatedArticle deleted = tarantoolTemplate.delete(translatedArticle1, TranslatedArticle.class);
+        assertThat(deleted).isEqualTo(translatedArticle1);
+
+        count = tarantoolTemplate.count(TranslatedArticle.class);
+        assertThat(count).isEqualTo(1L);
+
+        deleted = tarantoolTemplate.deleteById(translatedArticle2.getId(), TranslatedArticle.class);
+        assertThat(deleted).isEqualTo(translatedArticle2);
+
+        count = tarantoolTemplate.count(TranslatedArticle.class);
+        assertThat(count).isEqualTo(0L);
+    }
+
+    @Test
+    void shouldDeleteTranslatedArticleWithFlatKey() {
+        TranslatedArticleWithFlatKey translatedArticle = translatedArticleWithFlatKey();
+
+        TranslatedArticleWithFlatKey inserted = tarantoolTemplate.insert(translatedArticle, TranslatedArticleWithFlatKey.class);
+        assertThat(inserted).isEqualTo(translatedArticle);
+
+        Long count = tarantoolTemplate.count(TranslatedArticleWithFlatKey.class);
+        assertThat(count).isEqualTo(1L);
+
+        TranslatedArticleWithFlatKey deleted = tarantoolTemplate.delete(translatedArticle, TranslatedArticleWithFlatKey.class);
+        assertThat(deleted).isEqualTo(translatedArticle);
+
+        count = tarantoolTemplate.count(TranslatedArticleWithFlatKey.class);
+        assertThat(count).isEqualTo(0L);
+    }
+
+    @Test
+    void shouldDeleteTranslatedArticleWithMapId() {
+        TranslatedArticleWithMapId translatedArticle = translatedArticleWithMapId();
+
+        TranslatedArticleWithMapId inserted = tarantoolTemplate.insert(translatedArticle, TranslatedArticleWithMapId.class);
+        assertThat(inserted).isEqualTo(translatedArticle);
+
+        Long count = tarantoolTemplate.count(TranslatedArticleWithMapId.class);
+        assertThat(count).isEqualTo(1L);
+
+        TranslatedArticleWithMapId deleted = tarantoolTemplate.delete(translatedArticle, TranslatedArticleWithMapId.class);
+        assertThat(deleted).isEqualTo(translatedArticle);
+
+        count = tarantoolTemplate.count(TranslatedArticleWithMapId.class);
+        assertThat(count).isEqualTo(0L);
+    }
 }
