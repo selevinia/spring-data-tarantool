@@ -49,7 +49,8 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
     private final TarantoolExceptionTranslator exceptionTranslator;
     private final MessagePackMapper messagePackMapper;
     private final TarantoolTupleMethodsHelper tupleMethodsHelper;
-    private @Nullable EntityCallbacks entityCallbacks;
+    private @Nullable
+    EntityCallbacks entityCallbacks;
 
     public TarantoolTemplate(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient) {
         this(tarantoolClient, MappingTarantoolConverter.newConverter(), new DefaultTarantoolExceptionTranslator());
@@ -83,7 +84,7 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
 
     protected <T> T maybeCallBeforeConvert(T object, String spaceName) {
         if (null != entityCallbacks) {
-            return (T) entityCallbacks.callback(BeforeConvertCallback.class, object, spaceName);
+            return entityCallbacks.callback(BeforeConvertCallback.class, object, spaceName);
         }
 
         return object;
@@ -91,7 +92,7 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
 
     protected <T> T maybeCallBeforeSave(T object, TarantoolTuple tuple, String spaceName) {
         if (null != entityCallbacks) {
-            return (T) entityCallbacks.callback(BeforeSaveCallback.class, object, tuple, spaceName);
+            return entityCallbacks.callback(BeforeSaveCallback.class, object, tuple, spaceName);
         }
 
         return object;
@@ -142,7 +143,6 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
 
         return unwrap(execute(entityClass, spaceOps -> spaceOps.select(query)))
                 .stream()
-                .filter(tuples -> tuples.size() > 0)
                 .findFirst()
                 .map(t -> tupleToEntity(t, entityClass))
                 .orElse(null);
@@ -191,9 +191,10 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         TarantoolTuple tuple = entityToTuple(maybeCallBeforeConvert(entityToUse, spaceName), messagePackMapper, spaceMetadata);
         maybeCallBeforeSave(entityToUse, tuple, spaceName);
 
-        return unwrap(execute(spaceName, spaceOps -> spaceOps.insert(tuple))).stream()
+        return unwrap(execute(spaceName, spaceOps -> spaceOps.insert(tuple)))
+                .stream()
                 .findFirst()
-                .map(tuples -> tupleToEntity(tuples, entityClass))
+                .map(t -> tupleToEntity(t, entityClass))
                 .orElse(null);
     }
 
@@ -209,9 +210,10 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         TarantoolTuple tuple = entityToTuple(maybeCallBeforeConvert(entityToUse, spaceName), messagePackMapper, spaceMetadata);
         maybeCallBeforeSave(entityToUse, tuple, spaceName);
 
-        return unwrap(execute(spaceName, spaceOps -> spaceOps.replace(tuple))).stream()
+        return unwrap(execute(spaceName, spaceOps -> spaceOps.replace(tuple)))
+                .stream()
                 .findFirst()
-                .map(tuples -> tupleToEntity(tuples, entityClass))
+                .map(t -> tupleToEntity(t, entityClass))
                 .orElse(null);
     }
 
@@ -250,9 +252,10 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         Assert.notNull(entityClass, "Entity class must not be null");
 
         Conditions query = tupleMethodsHelper.primaryIndexQuery(entity);
-        return unwrap(execute(entityClass, spaceOps -> spaceOps.delete(query))).stream()
+        return unwrap(execute(entityClass, spaceOps -> spaceOps.delete(query)))
+                .stream()
                 .findFirst()
-                .map(tuples -> tupleToEntity(tuples, entityClass))
+                .map(t -> tupleToEntity(t, entityClass))
                 .orElse(null);
     }
 
@@ -262,12 +265,16 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         Assert.notNull(entityClass, "Entity class must not be null");
 
         String spaceName = spaceName(entityClass);
-        return unwrap(execute(spaceName, spaceOps -> spaceOps.select(query))).stream()
+        return unwrap(execute(spaceName, spaceOps -> spaceOps.select(query)))
+                .stream()
                 .map(tuple -> {
                     Conditions conditions = tupleMethodsHelper.primaryIndexQuery(tuple, entityClass);
                     return unwrap(execute(spaceName, spaceOps -> spaceOps.delete(conditions)));
                 })
-                .flatMap(tuples -> tuples.stream().map(t -> tupleToEntity(t, entityClass)))
+                .map(tuples -> tuples.stream()
+                        .findFirst()
+                        .map(t -> tupleToEntity(t, entityClass))
+                        .orElse(null))
                 .collect(Collectors.toList());
     }
 
@@ -277,7 +284,8 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         Assert.notNull(entityClass, "Entity class must not be null");
 
         Conditions query = tupleMethodsHelper.primaryIndexQueryById(id, entityClass);
-        return unwrap(execute(entityClass, spaceOps -> spaceOps.delete(query))).stream()
+        return unwrap(execute(entityClass, spaceOps -> spaceOps.delete(query)))
+                .stream()
                 .findFirst()
                 .map(tuples -> tupleToEntity(tuples, entityClass))
                 .orElse(null);
@@ -322,7 +330,7 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
             if (result != null) {
                 return result.stream()
                         .findFirst()
-                        .map(tuples -> tupleToEntity(tuples, entityClass))
+                        .map(t -> tupleToEntity(t, entityClass))
                         .orElse(null);
             } else {
                 return null;
