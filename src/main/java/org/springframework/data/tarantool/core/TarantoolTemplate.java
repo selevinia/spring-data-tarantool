@@ -272,6 +272,7 @@ public class TarantoolTemplate extends ExceptionTranslatorSupport implements App
                         .findFirst()
                         .map(t -> tupleToEntity(t, entityClass))
                         .orElse(null))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
