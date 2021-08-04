@@ -54,6 +54,20 @@ public class SimpleReactiveTarantoolRepositoryTest {
     }
 
     @Test
+    void shouldUpdateExistingSimpleEntity() {
+        TarantoolPersistentEntity<?> entity = converter.getMappingContext().getRequiredPersistentEntity(SimplePerson.class);
+        repository = new SimpleReactiveTarantoolRepository<Object, String>(
+                new MappingTarantoolEntityInformation(entity),
+                tarantoolOperations);
+
+        SimplePerson person = new SimplePerson();
+        person.id = "1";
+        repository.save(person);
+
+        verify(tarantoolOperations).replace(person, SimplePerson.class);
+    }
+
+    @Test
     void shouldUpdateExistingVersionedEntity() {
         TarantoolPersistentEntity<?> entity = converter.getMappingContext().getRequiredPersistentEntity(VersionedPerson.class);
         repository = new SimpleReactiveTarantoolRepository<Object, String>(

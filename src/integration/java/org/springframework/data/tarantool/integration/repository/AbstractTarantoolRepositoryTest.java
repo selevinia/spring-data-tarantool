@@ -199,6 +199,20 @@ public abstract class AbstractTarantoolRepositoryTest {
         });
     }
 
+    @Test
+    void shouldUpdateEntityWithCompositePrimaryKey() {
+        TranslatedArticle article = newTranslatedArticle();
+        TranslatedArticle primary = translatedArticleRepository.save(article);
+        assertThat(primary).isEqualTo(article);
+
+        primary.setName("New name");
+        TranslatedArticle secondary = translatedArticleRepository.save(primary);
+        assertWith(secondary, actual -> {
+            assertThat(actual.getId()).isEqualTo(article.getId());
+            assertThat(actual.getName()).isEqualTo("New name");
+        });
+    }
+
     protected interface UserRepository extends TarantoolRepository<User, UUID> {
 
         @Query(function = "find_user_by_user")

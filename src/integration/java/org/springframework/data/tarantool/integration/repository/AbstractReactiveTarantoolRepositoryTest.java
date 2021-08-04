@@ -227,6 +227,23 @@ public abstract class AbstractReactiveTarantoolRepositoryTest {
                 .verifyComplete();
     }
 
+    @Test
+    void shouldUpdateEntityWithCompositePrimaryKey() {
+        TranslatedArticle article = newTranslatedArticle();
+        translatedArticleRepository.save(article)
+                .map(a -> {
+                    a.setName("New name");
+                    return a;
+                })
+                .flatMap(a -> translatedArticleRepository.save(a))
+                .as(StepVerifier::create)
+                .assertNext(actual -> {
+                    assertThat(actual.getId()).isEqualTo(article.getId());
+                    assertThat(actual.getName()).isEqualTo("New name");
+                })
+                .verifyComplete();
+    }
+
     protected interface UserRepository extends ReactiveTarantoolRepository<User, UUID> {
 
         @Query(function = "find_user_by_user")
