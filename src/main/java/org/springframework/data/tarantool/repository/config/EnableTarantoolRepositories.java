@@ -31,7 +31,7 @@ public @interface EnableTarantoolRepositories {
      * {@code @EnableTarantoolRepositories("org.my.pkg")} instead of
      * {@code @EnableTarantoolRepositories(basePackages="org.my.pkg")}.
      *
-     * @return
+     * @return empty array of {@link String} by default.
      */
     String[] value() default {};
 
@@ -39,7 +39,7 @@ public @interface EnableTarantoolRepositories {
      * Base packages to scan for annotated components. {@link #value()} is an alias for (and mutually exclusive with) this
      * attribute. Use {@link #basePackageClasses()} for a type-safe alternative to String-based package names.
      *
-     * @return
+     * @return empty array of {@link String} by default.
      */
     String[] basePackages() default {};
 
@@ -48,7 +48,7 @@ public @interface EnableTarantoolRepositories {
      * package of each class specified will be scanned. Consider creating a special no-op marker class or interface in
      * each package that serves no purpose other than being referenced by this attribute.
      *
-     * @return
+     * @return empty array of {@link Class} by default.
      */
     Class<?>[] basePackageClasses() default {};
 
@@ -56,14 +56,14 @@ public @interface EnableTarantoolRepositories {
      * Specifies which types are eligible for component scanning. Further narrows the set of candidate components from
      * everything in {@link #basePackages()} to everything in the base packages that matches the given filter or filters.
      *
-     * @return
+     * @return empty array of {@link Filter} by default.
      */
     Filter[] includeFilters() default {};
 
     /**
      * Specifies which types are not eligible for component scanning.
      *
-     * @return
+     * @return empty array of {@link Filter} by default.
      */
     Filter[] excludeFilters() default {};
 
@@ -72,14 +72,14 @@ public @interface EnableTarantoolRepositories {
      * for a repository named {@code UserRepository} the corresponding implementation class will be looked up scanning for
      * {@code UserRepositoryImpl}.
      *
-     * @return
+     * @return "Impl" {@link String} by default.
      */
     String repositoryImplementationPostfix() default "Impl";
 
     /**
      * Configures the location of where to find the Spring Data named queries properties file. Not supported yet.
      *
-     * @return
+     * @return empty {@link String} by default.
      */
     String namedQueriesLocation() default "";
 
@@ -87,7 +87,7 @@ public @interface EnableTarantoolRepositories {
      * Returns the key of the {@link QueryLookupStrategy} to be used for lookup queries for query methods. Defaults to
      * {@link Key#CREATE_IF_NOT_FOUND}.
      *
-     * @return
+     * @return Enum value {@link Key#CREATE_IF_NOT_FOUND} by default.
      */
     Key queryLookupStrategy() default Key.CREATE_IF_NOT_FOUND;
 
@@ -95,14 +95,14 @@ public @interface EnableTarantoolRepositories {
      * Returns the {@link FactoryBean} class to be used for each repository instance. Defaults to
      * {@link TarantoolRepositoryFactoryBean}.
      *
-     * @return
+     * @return {@link TarantoolRepositoryFactoryBean} by default.
      */
     Class<?> repositoryFactoryBeanClass() default TarantoolRepositoryFactoryBean.class;
 
     /**
      * Configure the repository base class to be used to create repository proxies for this particular configuration.
      *
-     * @return
+     * @return {@link DefaultRepositoryBaseClass} by default.
      */
     Class<?> repositoryBaseClass() default DefaultRepositoryBaseClass.class;
 
@@ -110,7 +110,7 @@ public @interface EnableTarantoolRepositories {
      * Configures the name of the {@link TarantoolTemplate} bean to be
      * used with the repositories detected.
      *
-     * @return
+     * @return "reactiveTarantoolTemplate" {@link String} by default.
      */
     String tarantoolTemplateRef() default "tarantoolTemplate";
 
@@ -118,7 +118,7 @@ public @interface EnableTarantoolRepositories {
      * Configures whether nested repository-interfaces (e.g. defined as inner classes) should be discovered by the
      * repositories infrastructure.
      *
-     * @return
+     * @return {@literal false} by default.
      */
     boolean considerNestedRepositories() default false;
 }
