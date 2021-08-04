@@ -26,7 +26,7 @@ import java.time.LocalDateTime;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringJUnitConfig
-public class ReactiveAuditingTest {
+public class ReactiveTarantoolAuditingTest {
 
     @Autowired
     private ApplicationContext context;
