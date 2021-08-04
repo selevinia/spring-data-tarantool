@@ -1,7 +1,6 @@
 package org.springframework.data.tarantool.repository.support;
 
 import lombok.Data;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -16,7 +15,6 @@ import org.springframework.data.tarantool.core.mapping.TarantoolPersistentEntity
 import java.io.Serializable;
 
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @SuppressWarnings({"unchecked", "rawtypes"})
@@ -28,11 +26,6 @@ public class SimpleTarantoolRepositoryTest {
 
     @Mock
     private TarantoolOperations tarantoolOperations;
-
-    @BeforeEach
-    void before() {
-        when(tarantoolOperations.getConverter()).thenReturn(converter);
-    }
 
     @Test
     void shouldInsertNewSimpleEntity() {

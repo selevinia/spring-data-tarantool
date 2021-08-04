@@ -1,10 +1,7 @@
 package org.springframework.data.tarantool.repository.support;
 
 import io.tarantool.driver.api.conditions.Conditions;
-import org.springframework.data.mapping.context.AbstractMappingContext;
 import org.springframework.data.tarantool.core.TarantoolOperations;
-import org.springframework.data.tarantool.core.mapping.BasicTarantoolPersistentEntity;
-import org.springframework.data.tarantool.core.mapping.TarantoolPersistentProperty;
 import org.springframework.data.tarantool.repository.Sort;
 import org.springframework.data.tarantool.repository.TarantoolRepository;
 import org.springframework.lang.Nullable;
@@ -24,16 +21,14 @@ import java.util.Optional;
 public class SimpleTarantoolRepository<T, ID> implements TarantoolRepository<T, ID> {
     private final TarantoolEntityInformation<T, ID> entityInformation;
     private final TarantoolOperations operations;
-    private final AbstractMappingContext<BasicTarantoolPersistentEntity<?>, TarantoolPersistentProperty> mappingContext;
 
     public SimpleTarantoolRepository(TarantoolEntityInformation<T, ID> entityInformation,
-                                             TarantoolOperations operations) {
+                                     TarantoolOperations operations) {
         Assert.notNull(entityInformation, "TarantoolEntityInformation must not be null");
         Assert.notNull(operations, "TarantoolOperations must not be null");
 
         this.entityInformation = entityInformation;
         this.operations = operations;
-        this.mappingContext = operations.getConverter().getMappingContext();
     }
 
     @Override

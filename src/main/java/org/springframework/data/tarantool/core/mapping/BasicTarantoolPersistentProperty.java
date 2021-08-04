@@ -20,9 +20,9 @@ public class BasicTarantoolPersistentProperty extends AnnotationBasedPersistentP
     /**
      * Creates a new {@link BasicTarantoolPersistentProperty}.
      *
-     * @param property         the actual {@link Property} in the domain entity corresponding to this persistent entity.
-     * @param owner            the containing object or {@link TarantoolPersistentEntity} of this persistent property.
-     * @param simpleTypeHolder mapping of Java [simple|wrapper] types to Tarantool data types.
+     * @param property            the actual {@link Property} in the domain entity corresponding to this persistent entity.
+     * @param owner               the containing object or {@link TarantoolPersistentEntity} of this persistent property.
+     * @param simpleTypeHolder    mapping of Java [simple|wrapper] types to Tarantool data types.
      * @param fieldNamingStrategy {@link FieldNamingStrategy} to use
      */
     public BasicTarantoolPersistentProperty(Property property, TarantoolPersistentEntity<?> owner, SimpleTypeHolder simpleTypeHolder, FieldNamingStrategy fieldNamingStrategy) {

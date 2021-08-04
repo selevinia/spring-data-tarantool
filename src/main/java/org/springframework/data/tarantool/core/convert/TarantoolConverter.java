@@ -31,15 +31,4 @@ public interface TarantoolConverter extends EntityConverter<TarantoolPersistentE
      * @return the result of the conversion
      */
     Object convertToWritableType(Object source);
-
-    /**
-     * Create new default TarantoolConverter
-     * @return default TarantoolConverter
-     */
-    static TarantoolConverter newConverter() {
-        MappingTarantoolConverter converter = new MappingTarantoolConverter();
-        converter.afterPropertiesSet();
-        return converter;
-    }
-
 }

@@ -2,10 +2,7 @@ package org.springframework.data.tarantool.repository.support;
 
 import io.tarantool.driver.api.conditions.Conditions;
 import org.reactivestreams.Publisher;
-import org.springframework.data.mapping.context.AbstractMappingContext;
 import org.springframework.data.tarantool.core.ReactiveTarantoolOperations;
-import org.springframework.data.tarantool.core.mapping.BasicTarantoolPersistentEntity;
-import org.springframework.data.tarantool.core.mapping.TarantoolPersistentProperty;
 import org.springframework.data.tarantool.repository.ReactiveTarantoolRepository;
 import org.springframework.data.tarantool.repository.Sort;
 import org.springframework.util.Assert;
@@ -20,7 +17,6 @@ import reactor.core.publisher.Mono;
 public class SimpleReactiveTarantoolRepository<T, ID> implements ReactiveTarantoolRepository<T, ID> {
     private final TarantoolEntityInformation<T, ID> entityInformation;
     private final ReactiveTarantoolOperations operations;
-    private final AbstractMappingContext<BasicTarantoolPersistentEntity<?>, TarantoolPersistentProperty> mappingContext;
 
     public SimpleReactiveTarantoolRepository(TarantoolEntityInformation<T, ID> entityInformation,
                                              ReactiveTarantoolOperations operations) {
@@ -29,7 +25,6 @@ public class SimpleReactiveTarantoolRepository<T, ID> implements ReactiveTaranto
 
         this.entityInformation = entityInformation;
         this.operations = operations;
-        this.mappingContext = operations.getConverter().getMappingContext();
     }
 
     @Override

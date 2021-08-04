@@ -46,7 +46,7 @@ public class BasicMapId implements MapId {
     /**
      * Factory method. Convenient if imported statically.
      *
-     * @param name name of simple key
+     * @param name  name of simple key
      * @param value value for name provided
      * @return {@link BasicMapId}
      */
