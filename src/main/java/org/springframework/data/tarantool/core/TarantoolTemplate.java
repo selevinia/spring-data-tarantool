@@ -317,11 +317,16 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         Optional<TarantoolSpaceMetadata> spaceMetadata = spaceMetadata(entityClass);
         if (spaceMetadata.isPresent()) {
             TarantoolTupleSingleResultMapperFactory resultMapperFactory = tarantoolClient.getResultMapperFactoryFactory().defaultTupleSingleResultMapperFactory();
-            return unwrap(execute(() -> tarantoolClient.callForSingleResult(functionName, mappedTValues(parameters), messagePackMapper,
-                    resultMapperFactory.withDefaultTupleValueConverter(messagePackMapper, spaceMetadata.orElse(null))))).stream()
-                    .findFirst()
-                    .map(tuples -> tupleToEntity(tuples, entityClass))
-                    .orElse(null);
+            TarantoolResult<TarantoolTuple> result = unwrap(execute(() -> tarantoolClient.callForSingleResult(functionName, mappedTValues(parameters), messagePackMapper,
+                    resultMapperFactory.withDefaultTupleValueConverter(messagePackMapper, spaceMetadata.orElse(null)))));
+            if (result != null) {
+                return result.stream()
+                        .findFirst()
+                        .map(tuples -> tupleToEntity(tuples, entityClass))
+                        .orElse(null);
+            } else {
+                return null;
+            }
         } else {
             return call(functionName, parameters, valueConverter(messagePackMapper, entityClass));
         }
@@ -335,7 +340,7 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
 
         ValueConverter<Value, Value> converter = value -> value.isNilValue() ? null : value;
         Value value = unwrap(execute(() -> tarantoolClient.callForSingleResult(functionName, mappedTValues(parameters), messagePackMapper, converter)));
-        return entityConverter.fromValue(value);
+        return value != null ? entityConverter.fromValue(value) : null;
     }
 
     @Override
@@ -363,10 +368,15 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         Optional<TarantoolSpaceMetadata> spaceMetadata = spaceMetadata(entityClass);
         if (spaceMetadata.isPresent()) {
             TarantoolTupleSingleResultMapperFactory resultMapperFactory = tarantoolClient.getResultMapperFactoryFactory().defaultTupleSingleResultMapperFactory();
-            return unwrap(execute(() -> tarantoolClient.callForSingleResult(functionName, mappedTValues(parameters), messagePackMapper,
-                    resultMapperFactory.withDefaultTupleValueConverter(messagePackMapper, spaceMetadata.orElse(null))))).stream()
-                    .map(tuple -> tupleToEntity(tuple, entityClass))
-                    .collect(Collectors.toList());
+            TarantoolResult<TarantoolTuple> result = unwrap(execute(() -> tarantoolClient.callForSingleResult(functionName, mappedTValues(parameters), messagePackMapper,
+                    resultMapperFactory.withDefaultTupleValueConverter(messagePackMapper, spaceMetadata.orElse(null)))));
+            if (result != null) {
+                return result.stream()
+                        .map(tuple -> tupleToEntity(tuple, entityClass))
+                        .collect(Collectors.toList());
+            } else {
+                return Collections.emptyList();
+            }
         } else {
             return callForAll(functionName, parameters, value -> tupleToEntity(messagePackMapper.fromValue(value, Map.class), entityClass));
         }
@@ -375,9 +385,14 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
     @Override
     public <T> List<T> callForAll(String functionName, List<?> parameters, ValueConverter<Value, T> entityConverter) {
         ValueConverter<Value, List<Value>> converter = value -> value.isNilValue() ? null : value.asArrayValue().list();
-        return unwrap(execute(() -> tarantoolClient.callForSingleResult(functionName, mappedTValues(parameters), messagePackMapper, converter))).stream()
-                .map(entityConverter::fromValue)
-                .collect(Collectors.toList());
+        List<Value> result = unwrap(execute(() -> tarantoolClient.callForSingleResult(functionName, mappedTValues(parameters), messagePackMapper, converter)));
+        if (result != null) {
+            return result.stream()
+                    .map(entityConverter::fromValue)
+                    .collect(Collectors.toList());
+        } else {
+            return Collections.emptyList();
+        }
     }
 
     @Override

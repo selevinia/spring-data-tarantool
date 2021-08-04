@@ -10,14 +10,15 @@ import org.junit.jupiter.api.TestInstance;
 import org.springframework.data.tarantool.TarantoolDataRetrievalException;
 import org.springframework.data.tarantool.config.client.TarantoolClientOptions;
 import org.springframework.data.tarantool.core.TarantoolTemplate;
+import org.springframework.data.tarantool.core.mapping.BasicMapId;
 import org.springframework.data.tarantool.core.mapping.MapId;
 import org.springframework.data.tarantool.core.mapping.MapIdFactory;
 import org.springframework.data.tarantool.core.mapping.TarantoolMappingContext;
 import org.springframework.data.tarantool.integration.domain.*;
-import reactor.test.StepVerifier;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.springframework.data.tarantool.integration.core.util.AssertConsumer.articleAssertConsumer;
@@ -358,4 +359,108 @@ public abstract class AbstractTarantoolTemplateTest {
         count = tarantoolTemplate.count(TranslatedArticleWithMapId.class);
         assertThat(count).isEqualTo(0L);
     }
+
+    @Test
+    void shouldSelectArticles() {
+        Article article1 = simpleArticle();
+        Article article2 = simpleArticle();
+        Article article3 = simpleArticle();
+        Article article4 = simpleArticle();
+        Article article5 = simpleArticle();
+
+        List.of(article1, article2, article3, article4, article5).forEach(article -> tarantoolTemplate.insert(article, Article.class));
+
+        List<Article> all = tarantoolTemplate.select(Article.class);
+        assertThat(all).hasSize(5);
+
+        List<Article> selected = tarantoolTemplate.select(Conditions.any(), Article.class);
+        assertThat(selected).hasSize(5);
+
+        Article single = tarantoolTemplate.selectById(article1.getId(), Article.class);
+        assertWith(single, articleAssertConsumer(article1));
+
+        List<Article> articles = tarantoolTemplate.selectByIds(List.of(article2.getId(), article3.getId()), Article.class);
+        assertThat(articles).hasSize(2);
+
+        Article notFound = tarantoolTemplate.selectOne(Conditions.indexEquals(TarantoolIndexQuery.PRIMARY, List.of(UUID.randomUUID())), Article.class);
+        assertThat(notFound).isNull();
+    }
+
+    @Test
+    void shouldSelectTranslatedArticles() {
+        TranslatedArticle article1 = translatedArticle();
+        TranslatedArticleWithFlatKey article2 = translatedArticleWithFlatKey();
+        TranslatedArticleWithFlatKey article3 = translatedArticleWithFlatKey();
+        TranslatedArticleWithFlatKey article4 = translatedArticleWithFlatKey();
+        TranslatedArticleWithFlatKey article5 = translatedArticleWithFlatKey();
+
+        tarantoolTemplate.insert(article1, TranslatedArticle.class);
+
+        List.of(article2, article3, article4, article5).forEach(article -> tarantoolTemplate.insert(article, TranslatedArticleWithFlatKey.class));
+
+        List<TranslatedArticle> all = tarantoolTemplate.select(TranslatedArticle.class);
+        assertThat(all).hasSize(5);
+
+        List<TranslatedArticle> selected = tarantoolTemplate.select(Conditions.any(), TranslatedArticle.class);
+        assertThat(selected).hasSize(5);
+
+        TranslatedArticle one = tarantoolTemplate.selectById(article1.getId(), TranslatedArticle.class);
+        assertWith(one, articleAssertConsumer(article1));
+
+        MapId article2MapId = MapIdFactory.id(MapId.class)
+                .with("articleId", article2.getArticleId())
+                .with("locale", article2.getLocale());
+        TranslatedArticleWithFlatKey two = tarantoolTemplate.selectById(article2MapId, TranslatedArticleWithFlatKey.class);
+        assertWith(two, articleAssertConsumer(article2));
+
+        TranslatedArticleKeyInterface article3Key = MapIdFactory.id(TranslatedArticleKeyInterface.class)
+                .setArticleId(article3.getArticleId())
+                .setLocale(article3.getLocale());
+        TranslatedArticleWithFlatKey three = tarantoolTemplate.selectById(article3Key, TranslatedArticleWithFlatKey.class);
+        assertWith(three, articleAssertConsumer(article3));
+
+        MapId article4MapId = new BasicMapId()
+                .with("articleId", article4.getArticleId())
+                .with("locale", article4.getLocale());
+        TranslatedArticleWithFlatKey four = tarantoolTemplate.selectById(article4MapId, TranslatedArticleWithFlatKey.class);
+        assertWith(four, articleAssertConsumer(article4));
+    }
+
+    @Test
+    void shouldCallAndGetError() {
+        assertThatThrownBy(() -> tarantoolTemplate.callForAll("raise_error", Article.class))
+                .isInstanceOf(TarantoolDataRetrievalException.class)
+                .hasMessageEndingWith("Error from raise_error function");
+
+        assertThatThrownBy(() -> tarantoolTemplate.call("raise_error", Article.class))
+                .isInstanceOf(TarantoolDataRetrievalException.class)
+                                .hasMessageEndingWith("Error from raise_error function");
+
+        assertThatThrownBy(() -> tarantoolTemplate.callForAll("get_error", Article.class))
+                .isInstanceOf(TarantoolDataRetrievalException.class)
+                                .hasMessageStartingWith("Error from get_error function");
+
+        assertThatThrownBy(() -> tarantoolTemplate.call("get_error", Article.class))
+                .isInstanceOf(TarantoolDataRetrievalException.class)
+                                .hasMessageStartingWith("Error from get_error function");
+    }
+
+    @Test
+    void shouldCallAndGetNil() {
+        List<Article> empty = tarantoolTemplate.callForAll("get_nil", Article.class);
+        assertThat(empty).isEmpty();
+
+        Article nothing = tarantoolTemplate.call("get_nil", Article.class);
+        assertThat(nothing).isNull();
+    }
+
+    @Test
+    void shouldCallAndGetNothing() {
+        List<Article> empty = tarantoolTemplate.callForAll("get_nothing", Article.class);
+        assertThat(empty).isEmpty();
+
+        Article nothing = tarantoolTemplate.call("get_nothing", Article.class);
+        assertThat(nothing).isNull();
+    }
+
 }

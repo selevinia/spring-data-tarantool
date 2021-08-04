@@ -502,18 +502,21 @@ public abstract class AbstractReactiveTarantoolTemplateTest {
                                 .hasMessageEndingWith("Error from raise_error function")
                 )
                 .verify();
+
         reactiveTarantoolTemplate.call("raise_error", Article.class).as(StepVerifier::create)
                 .expectErrorSatisfies(throwable ->
                         assertThat(throwable).isInstanceOf(TarantoolDataRetrievalException.class)
                                 .hasMessageEndingWith("Error from raise_error function")
                 )
                 .verify();
+
         reactiveTarantoolTemplate.callForAll("get_error", Article.class).as(StepVerifier::create)
                 .expectErrorSatisfies(throwable ->
                         assertThat(throwable).isInstanceOf(TarantoolDataRetrievalException.class)
                                 .hasMessageStartingWith("Error from get_error function")
                 )
                 .verify();
+
         reactiveTarantoolTemplate.call("get_error", Article.class).as(StepVerifier::create)
                 .expectErrorSatisfies(throwable ->
                         assertThat(throwable).isInstanceOf(TarantoolDataRetrievalException.class)
