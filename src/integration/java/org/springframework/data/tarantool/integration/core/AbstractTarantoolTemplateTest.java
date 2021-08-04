@@ -15,10 +15,15 @@ import org.springframework.data.tarantool.core.mapping.MapId;
 import org.springframework.data.tarantool.core.mapping.MapIdFactory;
 import org.springframework.data.tarantool.core.mapping.TarantoolMappingContext;
 import org.springframework.data.tarantool.integration.domain.*;
+import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.springframework.data.tarantool.integration.core.util.AssertConsumer.articleAssertConsumer;
@@ -434,15 +439,15 @@ public abstract class AbstractTarantoolTemplateTest {
 
         assertThatThrownBy(() -> tarantoolTemplate.call("raise_error", Article.class))
                 .isInstanceOf(TarantoolDataRetrievalException.class)
-                                .hasMessageEndingWith("Error from raise_error function");
+                .hasMessageEndingWith("Error from raise_error function");
 
         assertThatThrownBy(() -> tarantoolTemplate.callForAll("get_error", Article.class))
                 .isInstanceOf(TarantoolDataRetrievalException.class)
-                                .hasMessageStartingWith("Error from get_error function");
+                .hasMessageStartingWith("Error from get_error function");
 
         assertThatThrownBy(() -> tarantoolTemplate.call("get_error", Article.class))
                 .isInstanceOf(TarantoolDataRetrievalException.class)
-                                .hasMessageStartingWith("Error from get_error function");
+                .hasMessageStartingWith("Error from get_error function");
     }
 
     @Test
@@ -461,6 +466,114 @@ public abstract class AbstractTarantoolTemplateTest {
 
         Article nothing = tarantoolTemplate.call("get_nothing", Article.class);
         assertThat(nothing).isNull();
+    }
+
+    @Test
+    void shouldCallForArticle() {
+        Article article = article();
+
+        Article inserted = tarantoolTemplate.insert(article, Article.class);
+        assertThat(inserted).isEqualTo(article);
+
+        Article received = tarantoolTemplate.call("get_article_by_entity", List.of(article), Article.class);
+        assertWith(received, articleAssertConsumer(article));
+    }
+
+    @Test
+    void shouldCallForArticleElement() {
+        User user = user();
+        Article article = article();
+        article.setUserId(user.getId());
+        Comment comment = comment();
+        comment.setArticleId(article.getId());
+        comment.setUserId(article.getUserId());
+
+        tarantoolTemplate.insert(article, Article.class);
+        tarantoolTemplate.insert(user, User.class);
+        tarantoolTemplate.insert(comment, Comment.class);
+
+        ArticleElement received = tarantoolTemplate.call("get_article_element_by_id", List.of(article.getId()), ArticleElement.class);
+        assertWith(received, articleElement -> {
+            assertThat(articleElement.getId()).isEqualTo(article.getId());
+            assertThat(articleElement.getName()).isEqualTo(article.getName());
+            assertThat(articleElement.getSlug()).isEqualTo(article.getSlug());
+            assertThat(articleElement.getPublishDate().withNano(0)).isEqualTo(article.getPublishDate().withNano(0));
+            assertThat(articleElement.getUserId()).isEqualTo(article.getUserId());
+            assertThat(articleElement.getTags()).isEqualTo(article.getTags());
+            assertThat(articleElement.getLikes()).isEqualTo(article.getLikes());
+
+            assertThat(articleElement.getUser()).isNotNull();
+            assertThat(articleElement.getUser().getId()).isEqualTo(user.getId());
+            assertThat(articleElement.getUser().getFirstName()).isEqualTo(user.getFirstName());
+            assertThat(articleElement.getUser().getLastName()).isEqualTo(user.getLastName());
+            assertThat(articleElement.getUser().getEmail()).isEqualTo(user.getEmail());
+            assertThat(articleElement.getUser().getAddress()).isEqualTo(user.getAddress());
+
+            assertThat(articleElement.getComments()).isNotNull();
+            assertThat(articleElement.getComments()).hasSize(1);
+            assertThat(articleElement.getComments().get(0).getId()).isEqualTo(comment.getId());
+            assertThat(articleElement.getComments().get(0).getArticleId()).isEqualTo(comment.getArticleId());
+            assertThat(articleElement.getComments().get(0).getUserId()).isEqualTo(comment.getUserId());
+            assertThat(articleElement.getComments().get(0).getValue()).isEqualTo(comment.getValue());
+            assertThat(articleElement.getComments().get(0).getLikes()).isEqualTo(comment.getLikes());
+        });
+    }
+
+    @Test
+    void shouldCallForCountArticles() {
+        Article article1 = simpleArticle();
+        Article article2 = simpleArticle();
+        article2.setUserId(article1.getUserId());
+
+        List.of(article1, article2).forEach(article -> tarantoolTemplate.insert(article, Article.class));
+
+        Long received = tarantoolTemplate.call("count_articles_by_user_id", List.of(article1.getUserId()), Long.class);
+        assertThat(received).isEqualTo(2L);
+    }
+
+    @Test
+    void shouldCallForArticles() {
+        Article article1 = simpleArticle();
+        Article article2 = simpleArticle();
+
+        List.of(article1, article2).forEach(article -> tarantoolTemplate.insert(article, Article.class));
+
+        List<Article> received = tarantoolTemplate.callForAll("get_articles", Article.class);
+        assertThat(received).hasSize(2);
+
+        Set<UUID> uuids = received.stream().map(Article::getId).collect(Collectors.toSet());
+        assertThat(uuids).contains(article1.getId());
+        assertThat(uuids).contains(article2.getId());
+    }
+
+    @Test
+    void shouldCallForArticlesByUser() {
+        User user = user();
+        Article article = article();
+        article.setUserId(user.getId());
+
+        Article inserted = tarantoolTemplate.insert(article, Article.class);
+        assertThat(inserted).isEqualTo(article);
+
+        List<Article> received = tarantoolTemplate.callForAll("get_articles_by_user", List.of(user), Article.class);
+        assertWith(received.get(0), articleAssertConsumer(article));
+    }
+
+    @Test
+    void shouldCallForArticlesByUserId() {
+        Article article1 = simpleArticle();
+        Article article2 = simpleArticle();
+        Article article3 = simpleArticle();
+        article2.setUserId(article1.getUserId());
+
+        List.of(article1, article2, article3).forEach(article -> tarantoolTemplate.insert(article, Article.class));
+
+        List<Article> received = tarantoolTemplate.callForAll("get_articles_by_user_id", List.of(article1.getUserId()), Article.class);
+        assertThat(received).hasSize(2);
+
+        Set<UUID> uuids = received.stream().map(Article::getId).collect(Collectors.toSet());
+        assertThat(uuids).contains(article1.getId());
+        assertThat(uuids).contains(article2.getId());
     }
 
 }

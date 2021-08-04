@@ -525,8 +525,8 @@ public class TarantoolTemplateTest extends AbstractTarantoolTemplateTest {
         when(tarantoolClient.getResultMapperFactoryFactory()).thenReturn(new DefaultResultMapperFactoryFactory());
         when(tarantoolClient.callForSingleResult(any(), any(), any(), any(CallResultMapper.class))).thenReturn(CompletableFuture.completedFuture(tupleResult(messageOne, messageTwo, messageThree)));
 
-        Message called = tarantoolTemplate.call("testFunction", List.of(1), Message.class);
-        assertThat(called).isEqualTo(messageOne);
+        Message received = tarantoolTemplate.call("testFunction", List.of(1), Message.class);
+        assertThat(received).isEqualTo(messageOne);
 
         verify(tarantoolClient, times(1)).callForSingleResult(any(), any(), any(), any(CallResultMapper.class));
     }
@@ -536,8 +536,8 @@ public class TarantoolTemplateTest extends AbstractTarantoolTemplateTest {
     void shouldCallWithConverter() {
         when(tarantoolClient.callForSingleResult(any(), any(), any(), any(ValueConverter.class))).thenReturn(CompletableFuture.completedFuture(tupleValue(messageOne)));
 
-        List<Object> called = tarantoolTemplate.call("testFunction", List.of(1), value -> messagePackMapper.fromValue(value, List.class));
-        assertThat(called).containsAll(List.of(messageOne.getId(), messageOne.getDate().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), messageOne.getText()));
+        List<Object> received = tarantoolTemplate.call("testFunction", List.of(1), value -> messagePackMapper.fromValue(value, List.class));
+        assertThat(received).containsAll(List.of(messageOne.getId(), messageOne.getDate().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), messageOne.getText()));
 
         verify(tarantoolClient, times(1)).callForSingleResult(any(), any(), any(), any(ValueConverter.class));
     }
@@ -551,8 +551,8 @@ public class TarantoolTemplateTest extends AbstractTarantoolTemplateTest {
         when(tarantoolClient.getResultMapperFactoryFactory()).thenReturn(new DefaultResultMapperFactoryFactory());
         when(tarantoolClient.callForSingleResult(any(), any(), any(), any(CallResultMapper.class))).thenReturn(CompletableFuture.completedFuture(tupleResult(messageOne, messageTwo, messageThree)));
 
-        List<Message> called = tarantoolTemplate.callForAll("testFunction", List.of(1, 2, 3), Message.class);
-        assertThat(called).containsExactly(messageOne, messageTwo, messageThree);
+        List<Message> received = tarantoolTemplate.callForAll("testFunction", List.of(1, 2, 3), Message.class);
+        assertThat(received).containsExactly(messageOne, messageTwo, messageThree);
 
         verify(tarantoolClient, times(1)).callForSingleResult(any(), any(), any(), any(CallResultMapper.class));
     }
@@ -562,8 +562,8 @@ public class TarantoolTemplateTest extends AbstractTarantoolTemplateTest {
     void shouldCallForAllWithConverter() {
         when(tarantoolClient.callForSingleResult(any(), any(), any(), any(ValueConverter.class))).thenReturn(CompletableFuture.completedFuture(tupleArrayValue(messageOne, messageTwo, messageThree).list()));
 
-        List<List<Object>> called = tarantoolTemplate.callForAll("testFunction", List.of(1, 2, 3), value -> messagePackMapper.fromValue(value, List.class));
-        assertThat(called).containsExactly(
+        List<List<Object>> received = tarantoolTemplate.callForAll("testFunction", List.of(1, 2, 3), value -> messagePackMapper.fromValue(value, List.class));
+        assertThat(received).containsExactly(
                 List.of(messageOne.getId(), messageOne.getDate().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), messageOne.getText()),
                 List.of(messageTwo.getId(), messageTwo.getDate().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), messageTwo.getText()),
                 List.of(messageThree.getId(), messageThree.getDate().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), messageThree.getText())
