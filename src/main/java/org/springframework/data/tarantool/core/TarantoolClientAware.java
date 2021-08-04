@@ -17,7 +17,7 @@ public interface TarantoolClientAware {
     /**
      * Return Tarantool Client used for this instance
      *
-     * @return entity converter
+     * @return entity client
      */
     TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> getClient();
 
