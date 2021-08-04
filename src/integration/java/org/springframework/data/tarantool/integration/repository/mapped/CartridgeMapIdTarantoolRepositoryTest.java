@@ -17,6 +17,7 @@ import java.util.List;
 /**
  * Runner class for repository tests with MapId for standard cartridge Tarantool installation.
  * To run test cartridge using Docker, file docker-compose.cartridge.yml may be used.
+ * To initialize cartridge after first run get terminal to tarantool-router-1 container and run /opt/integration-app/cluster-up.sh
  */
 @SpringJUnitConfig
 public class CartridgeMapIdTarantoolRepositoryTest extends AbstractMapIdTarantoolRepositoryTest {
