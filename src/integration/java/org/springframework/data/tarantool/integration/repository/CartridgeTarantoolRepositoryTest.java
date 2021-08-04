@@ -5,37 +5,38 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
-import org.springframework.data.tarantool.config.AbstractReactiveTarantoolConfiguration;
+import org.springframework.data.tarantool.config.AbstractTarantoolConfiguration;
 import org.springframework.data.tarantool.config.client.TarantoolClientOptions;
 import org.springframework.data.tarantool.integration.config.CartridgeTarantoolClientOptions;
 import org.springframework.data.tarantool.integration.core.convert.LocaleToStringConverter;
 import org.springframework.data.tarantool.integration.core.convert.StringToLocaleConverter;
 import org.springframework.data.tarantool.integration.domain.DistributedUser;
-import org.springframework.data.tarantool.repository.config.EnableReactiveTarantoolRepositories;
+import org.springframework.data.tarantool.repository.config.EnableTarantoolRepositories;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
-import reactor.test.StepVerifier;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertWith;
 import static org.springframework.data.tarantool.integration.repository.util.TestData.newDistributedUser;
 import static org.springframework.data.tarantool.integration.repository.util.TestData.newVersionedUser;
 
 /**
- * Runner class for reactive repository tests for standard cartridge Tarantool installation.
+ * Runner class for repository tests for standard cartridge Tarantool installation.
  * To run test cartridge using Docker, file docker-compose.cartridge.yml may be used.
  */
 @SpringJUnitConfig
-public class CartridgeReactiveTarantoolRepositoryTest extends AbstractReactiveTarantoolRepositoryTest {
+public class CartridgeTarantoolRepositoryTest extends AbstractTarantoolRepositoryTest {
 
     @Configuration
-    @EnableReactiveTarantoolRepositories(basePackages = "org.springframework.data.tarantool.integration.repository",
+    @EnableTarantoolRepositories(basePackages = "org.springframework.data.tarantool.integration.repository",
             considerNestedRepositories = true,
             includeFilters = {
                     @ComponentScan.Filter(pattern = ".*UserRepository", type = FilterType.REGEX),
                     @ComponentScan.Filter(pattern = ".*ArticleRepository", type = FilterType.REGEX)
             })
-    static class Config extends AbstractReactiveTarantoolConfiguration {
+    static class Config extends AbstractTarantoolConfiguration {
 
         @Bean
         @Override
@@ -52,23 +53,19 @@ public class CartridgeReactiveTarantoolRepositoryTest extends AbstractReactiveTa
     @Test
     void shouldDoSaveAndFindByIdDistributedEntity() {
         DistributedUser user = newDistributedUser();
-        distributedUserRepository.save(user).as(StepVerifier::create)
-                .expectNextCount(1)
-                .verifyComplete();
+        distributedUserRepository.save(user);
 
-        distributedUserRepository.findById(user.getId()).as(StepVerifier::create)
-                .assertNext(actual -> {
-                    assertThat(actual.getId()).isEqualTo(user.getId());
-                    assertThat(actual.getBucketId()).isNotNull();
-                })
-                .verifyComplete();
+        Optional<DistributedUser> found = distributedUserRepository.findById(user.getId());
+        assertWith(found.orElse(null), actual -> {
+            assertThat(actual.getId()).isEqualTo(user.getId());
+            assertThat(actual.getBucketId()).isNotNull();
+        });
     }
 
     @Test
     void shouldDoMassUpload() {
-        userRepository.uploadUsers(List.of(newVersionedUser(), newVersionedUser())).as(StepVerifier::create)
-                .expectNext(2L)
-                .verifyComplete();
+        Long count = userRepository.uploadUsers(List.of(newVersionedUser(), newVersionedUser()));
+        assertThat(count).isEqualTo(2L);
     }
 
 }

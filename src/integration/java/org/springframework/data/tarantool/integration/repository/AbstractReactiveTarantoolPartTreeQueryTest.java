@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.data.tarantool.core.ReactiveTarantoolOperations;
-import org.springframework.data.tarantool.integration.domain.Address;
 import org.springframework.data.tarantool.integration.domain.User;
 import org.springframework.data.tarantool.repository.ReactiveTarantoolRepository;
 import reactor.core.publisher.Flux;
@@ -15,6 +14,8 @@ import reactor.test.StepVerifier;
 
 import java.time.LocalDate;
 import java.util.UUID;
+
+import static org.springframework.data.tarantool.integration.repository.util.TestData.newUser;
 
 /**
  * Class contains all test methods for Tarantool reactive repository with part tree queries usage
@@ -179,24 +180,7 @@ public abstract class AbstractReactiveTarantoolPartTreeQueryTest {
                 .verifyComplete();
     }
 
-    protected User newUser(String firstName, String lastName, int age, boolean active) {
-        return User.builder()
-                .id(UUID.randomUUID())
-                .firstName(firstName)
-                .lastName(lastName)
-                .birthDate(LocalDate.now().minusYears(age))
-                .age(age)
-                .active(active)
-                .email("akuzin@mail.ru")
-                .address(Address.builder()
-                        .city("Kandalaksha")
-                        .street("Lenina 12-2")
-                        .postcode("123456")
-                        .build())
-                .build();
-    }
-
-    interface UserRepository extends ReactiveTarantoolRepository<User, UUID> {
+    protected interface UserRepository extends ReactiveTarantoolRepository<User, UUID> {
 
         Flux<User> findAllByLastName(String lastName);
 

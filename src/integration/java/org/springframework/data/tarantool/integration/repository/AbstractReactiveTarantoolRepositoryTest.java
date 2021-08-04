@@ -5,19 +5,22 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.tarantool.core.ReactiveTarantoolOperations;
-import org.springframework.data.tarantool.integration.domain.*;
+import org.springframework.data.tarantool.integration.domain.DistributedUser;
+import org.springframework.data.tarantool.integration.domain.TranslatedArticle;
+import org.springframework.data.tarantool.integration.domain.TranslatedArticleKey;
+import org.springframework.data.tarantool.integration.domain.User;
 import org.springframework.data.tarantool.repository.Query;
 import org.springframework.data.tarantool.repository.ReactiveTarantoolRepository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.time.LocalDate;
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.data.tarantool.integration.repository.util.TestData.newTranslatedArticle;
+import static org.springframework.data.tarantool.integration.repository.util.TestData.newUser;
 
 /**
  * Class contains all test methods for Tarantool reactive repository usage
@@ -224,59 +227,7 @@ public abstract class AbstractReactiveTarantoolRepositoryTest {
                 .verifyComplete();
     }
 
-    protected User newUser() {
-        return User.builder()
-                .id(UUID.randomUUID())
-                .firstName("Alexey")
-                .lastName("Kuzin")
-                .birthDate(LocalDate.now().minusYears(24))
-                .age(24)
-                .active(true)
-                .email("akuzin@mail.ru")
-                .address(Address.builder()
-                        .city("Kandalaksha")
-                        .street("Lenina 12-2")
-                        .postcode("123456")
-                        .build())
-                .build();
-    }
-
-    protected User newVersionedUser() {
-        User user = newUser();
-        user.setVersion(0L);
-        return user;
-    }
-
-    protected DistributedUser newDistributedUser() {
-        return DistributedUser.distributedBuilder()
-                .id(UUID.randomUUID())
-                .firstName("Alexey")
-                .lastName("Kuzin")
-                .birthDate(LocalDate.now().minusYears(24))
-                .age(24)
-                .active(true)
-                .email("akuzin@mail.ru")
-                .address(Address.builder()
-                        .city("Kandalaksha")
-                        .street("Lenina 12-2")
-                        .postcode("123456")
-                        .build())
-                .build();
-    }
-
-    protected TranslatedArticle newTranslatedArticle() {
-        return TranslatedArticle.builder()
-                .id(
-                        TranslatedArticleKey.builder()
-                                .articleId(UUID.randomUUID())
-                                .locale(Locale.ENGLISH)
-                                .build()
-                )
-                .name("Selevinia eats tarantool")
-                .build();
-    }
-
-    interface UserRepository extends ReactiveTarantoolRepository<User, UUID> {
+    protected interface UserRepository extends ReactiveTarantoolRepository<User, UUID> {
 
         @Query(function = "find_user_by_user")
         Flux<User> findOneUser(User user);
@@ -291,9 +242,9 @@ public abstract class AbstractReactiveTarantoolRepositoryTest {
         Mono<Long> uploadUsers(List<User> users);
     }
 
-    interface DistributedUserRepository extends ReactiveTarantoolRepository<DistributedUser, UUID> {
+    protected interface DistributedUserRepository extends ReactiveTarantoolRepository<DistributedUser, UUID> {
     }
 
-    interface TranslatedArticleRepository extends ReactiveTarantoolRepository<TranslatedArticle, TranslatedArticleKey> {
+    protected interface TranslatedArticleRepository extends ReactiveTarantoolRepository<TranslatedArticle, TranslatedArticleKey> {
     }
 }
