@@ -32,6 +32,7 @@ public interface TarantoolClientAware {
 
     /**
      * Provide Tarantool space operations for giving space name
+     *
      * @param spaceName name of giving space
      * @return Tarantool space operations
      */
