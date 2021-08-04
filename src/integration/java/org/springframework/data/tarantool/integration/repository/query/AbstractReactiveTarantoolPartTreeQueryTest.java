@@ -1,4 +1,4 @@
-package org.springframework.data.tarantool.integration.repository;
+package org.springframework.data.tarantool.integration.repository.query;
 
 import io.tarantool.driver.api.conditions.Conditions;
 import org.junit.jupiter.api.BeforeEach;

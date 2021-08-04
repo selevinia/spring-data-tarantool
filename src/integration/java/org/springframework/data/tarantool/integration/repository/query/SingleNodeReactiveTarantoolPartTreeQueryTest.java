@@ -1,4 +1,4 @@
-package org.springframework.data.tarantool.integration.repository;
+package org.springframework.data.tarantool.integration.repository.query;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Bean;
@@ -10,6 +10,7 @@ import org.springframework.data.tarantool.config.client.TarantoolClientOptions;
 import org.springframework.data.tarantool.integration.config.SingleNodeTarantoolClientOptions;
 import org.springframework.data.tarantool.integration.core.convert.LocaleToStringConverter;
 import org.springframework.data.tarantool.integration.core.convert.StringToLocaleConverter;
+import org.springframework.data.tarantool.integration.repository.query.CartridgeReactiveTarantoolPartTreeTest;
 import org.springframework.data.tarantool.repository.config.EnableReactiveTarantoolRepositories;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import reactor.test.StepVerifier;

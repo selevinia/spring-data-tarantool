@@ -1,4 +1,4 @@
-package org.springframework.data.tarantool.integration.repository;
+package org.springframework.data.tarantool.integration.repository.mapped;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.data.tarantool.config.AbstractReactiveTarantoolConfiguration;
 import org.springframework.data.tarantool.config.client.TarantoolClientOptions;
-import org.springframework.data.tarantool.integration.config.CustomCrudOperationsTarantoolClientOptions;
+import org.springframework.data.tarantool.integration.config.CartridgeTarantoolClientOptions;
 import org.springframework.data.tarantool.integration.core.convert.LocaleToStringConverter;
 import org.springframework.data.tarantool.integration.core.convert.StringToLocaleConverter;
 import org.springframework.data.tarantool.repository.config.EnableReactiveTarantoolRepositories;
@@ -15,11 +15,11 @@ import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import java.util.List;
 
 /**
- * Runner class for reactive repository tests with MapId for cartridge Tarantool installation with custom CRUD operation function implementations.
+ * Runner class for reactive repository tests with MapId for standard cartridge Tarantool installation.
  * To run test cartridge using Docker, file docker-compose.cartridge.yml may be used.
  */
 @SpringJUnitConfig
-public class CustomCrudMapIdReactiveTarantoolRepositoryTest extends AbstractMapIdReactiveTarantoolRepositoryTest {
+public class CartridgeMapIdReactiveTarantoolRepositoryTest extends AbstractMapIdReactiveTarantoolRepositoryTest {
 
     @Configuration
     @EnableReactiveTarantoolRepositories(basePackages = "org.springframework.data.tarantool.integration.repository",
@@ -30,7 +30,7 @@ public class CustomCrudMapIdReactiveTarantoolRepositoryTest extends AbstractMapI
         @Bean
         @Override
         public TarantoolClientOptions tarantoolClientOptions() {
-            return new CustomCrudOperationsTarantoolClientOptions();
+            return new CartridgeTarantoolClientOptions();
         }
 
         @Override
