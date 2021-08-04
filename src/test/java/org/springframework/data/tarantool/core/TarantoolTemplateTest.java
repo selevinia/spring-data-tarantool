@@ -296,12 +296,21 @@ public class TarantoolTemplateTest extends AbstractTarantoolTemplateTest {
             TarantoolIndexQuery indexQuery = conditions.toIndexQuery(metadataOperations, spaceMetadata);
             assertThat(indexQuery.getIndexId()).isEqualTo(0);
             assertThat(indexQuery.getKeyValues()).hasSize(1);
-            return CompletableFuture.completedFuture(tupleResult(message));
+            if (indexQuery.getKeyValues().get(0).equals("1")) {
+                return (CompletableFuture.completedFuture(tupleResult(messageOne)));
+            } else if (indexQuery.getKeyValues().get(0).equals("2")) {
+                return (CompletableFuture.completedFuture(tupleResult(messageTwo)));
+            } else {
+                return (CompletableFuture.completedFuture(tupleResult(messageThree)));
+            }
         });
 
         Conditions query = Conditions.any();
         List<Message> updated = tarantoolTemplate.update(query, message, Message.class);
         assertThat(updated).hasSize(3);
+        assertThat(updated).contains(messageOne);
+        assertThat(updated).contains(messageTwo);
+        assertThat(updated).contains(messageThree);
 
         assertThat(beforeConvertEntity).isSameAs(message);
         assertThat(beforeSaveEntity).isSameAs(message);
@@ -447,15 +456,31 @@ public class TarantoolTemplateTest extends AbstractTarantoolTemplateTest {
 
     @Test
     void shouldDeleteWithConditions() {
-        Message message = messageOne;
+        TarantoolSpaceMetadata spaceMetadata = spaceMetadata();
 
         when(tarantoolClient.space(any())).thenReturn(spaceOperations);
+        when(metadataOperations.getIndexById(spaceMetadata.getSpaceName(), 0)).thenReturn(Optional.of(indexMetadata()));
         when(spaceOperations.select(any())).thenReturn(CompletableFuture.completedFuture(tupleResult(messageOne, messageTwo, messageThree)));
-        when(spaceOperations.delete(any())).thenReturn(CompletableFuture.completedFuture(tupleResult(message)));
+        when(spaceOperations.delete(any())).then(invocation -> {
+            Conditions conditions = invocation.getArgument(0);
+            TarantoolIndexQuery indexQuery = conditions.toIndexQuery(metadataOperations, spaceMetadata);
+            assertThat(indexQuery.getIndexId()).isEqualTo(0);
+            assertThat(indexQuery.getKeyValues()).hasSize(1);
+            if (indexQuery.getKeyValues().get(0).equals("1")) {
+                return (CompletableFuture.completedFuture(tupleResult(messageOne)));
+            } else if (indexQuery.getKeyValues().get(0).equals("2")) {
+                return (CompletableFuture.completedFuture(tupleResult(messageTwo)));
+            } else {
+                return (CompletableFuture.completedFuture(tupleResult(messageThree)));
+            }
+        });
 
         Conditions query = Conditions.any();
         List<Message> deleted = tarantoolTemplate.delete(query, Message.class);
         assertThat(deleted).hasSize(3);
+        assertThat(deleted).contains(messageOne);
+        assertThat(deleted).contains(messageTwo);
+        assertThat(deleted).contains(messageThree);
 
         verify(tarantoolClient, times(4)).space(any());
         verify(spaceOperations, times(1)).select(query);
