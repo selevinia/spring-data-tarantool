@@ -58,6 +58,12 @@ public class MappingTarantoolConverter extends AbstractTarantoolConverter {
         return writeConverter.convert(source);
     }
 
+    public static TarantoolConverter newConverter() {
+        MappingTarantoolConverter converter = new MappingTarantoolConverter();
+        converter.afterPropertiesSet();
+        return converter;
+    }
+
     private static ConversionService newConversionService() {
         GenericConversionService conversionService = new GenericConversionService();
         DefaultConversionService.addCollectionConverters(conversionService);

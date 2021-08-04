@@ -23,7 +23,7 @@ public class MapIdFactory {
      * interface that also implements {@link MapId}, so it can be cast as such if necessary.
      *
      * @param idInterface The type of the id interface.
-     * @param <T> type of id to return
+     * @param <T>         type of id to return
      * @return An implementation of the given interface that also implements {@link MapId}.
      * @see IdInterfaceValidator#validate(Class)
      */
@@ -38,8 +38,8 @@ public class MapIdFactory {
      * {@link MapId}, so it can be cast as such if necessary.
      *
      * @param idInterface The type of the id interface.
-     * @param loader {@link ClassLoader} to use
-     * @param <T> type of id to return
+     * @param loader      {@link ClassLoader} to use
+     * @param <T>         type of id to return
      * @return An implementation of the given interface that also implements {@link MapId}.
      * @see IdInterfaceValidator#validate(Class)
      */

@@ -29,7 +29,7 @@ public class TarantoolTupleMethodsHelper {
     /**
      * Create new IndexQueryCreator
      *
-     * @param tarantoolConverter tarantool converter to use
+     * @param tarantoolConverter      tarantool converter to use
      * @param tarantoolConverterAware helper class which should be aware of converter
      */
     public TarantoolTupleMethodsHelper(TarantoolConverter tarantoolConverter, TarantoolConverterAware tarantoolConverterAware) {
@@ -42,7 +42,8 @@ public class TarantoolTupleMethodsHelper {
 
     /**
      * Create Tarantool Driver {@link Conditions}, which are should be primary index query
-     * @param tuple TarantoolTuple to use
+     *
+     * @param tuple       TarantoolTuple to use
      * @param entityClass provided entity class
      * @return primary index query {@link Conditions}
      */
@@ -80,8 +81,9 @@ public class TarantoolTupleMethodsHelper {
 
     /**
      * Create Tarantool Driver {@link Conditions}, which are should be primary index query
+     *
      * @param source entity object
-     * @param <T> entity class parameter
+     * @param <T>    entity class parameter
      * @return primary index query {@link Conditions}
      */
     public <T> Conditions primaryIndexQuery(T source) {
@@ -92,9 +94,10 @@ public class TarantoolTupleMethodsHelper {
 
     /**
      * Create Tarantool Driver {@link Conditions}, which are should be primary index query
-     * @param id identifier property value for entity
+     *
+     * @param id          identifier property value for entity
      * @param entityClass provided entity class
-     * @param <ID> identifier class parameter
+     * @param <ID>        identifier class parameter
      * @return primary index query {@link Conditions}
      */
     public <ID> Conditions primaryIndexQueryById(ID id, Class<?> entityClass) {
@@ -104,9 +107,10 @@ public class TarantoolTupleMethodsHelper {
 
     /**
      * Create Tarantool Driver {@link Conditions}, which are should be primary index query
-     * @param id identifier property value for entity
+     *
+     * @param id               identifier property value for entity
      * @param persistentEntity TarantoolPersistentEntity entity
-     * @param <ID> identifier class parameter
+     * @param <ID>             identifier class parameter
      * @return primary index query {@link Conditions}
      */
     public <ID> Conditions primaryIndexQuery(ID id, TarantoolPersistentEntity<?> persistentEntity) {
@@ -133,6 +137,7 @@ public class TarantoolTupleMethodsHelper {
 
     /**
      * Prepare Tarantool TupleOperations to use for update
+     *
      * @param tuple source tuple
      * @return prepared TupleOperations instance
      */

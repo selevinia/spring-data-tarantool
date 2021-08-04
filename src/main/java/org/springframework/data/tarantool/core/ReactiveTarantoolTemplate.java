@@ -21,6 +21,7 @@ import org.springframework.dao.DataRetrievalFailureException;
 import org.springframework.data.mapping.MappingException;
 import org.springframework.data.mapping.callback.EntityCallbacks;
 import org.springframework.data.mapping.callback.ReactiveEntityCallbacks;
+import org.springframework.data.tarantool.core.convert.MappingTarantoolConverter;
 import org.springframework.data.tarantool.core.convert.TarantoolConverter;
 import org.springframework.data.tarantool.core.mapping.TarantoolPersistentEntity;
 import org.springframework.data.tarantool.core.mapping.event.ReactiveBeforeConvertCallback;
@@ -58,7 +59,7 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
     private @Nullable ReactiveEntityCallbacks entityCallbacks;
 
     public ReactiveTarantoolTemplate(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient) {
-        this(tarantoolClient, TarantoolConverter.newConverter(), new DefaultTarantoolExceptionTranslator());
+        this(tarantoolClient, MappingTarantoolConverter.newConverter(), new DefaultTarantoolExceptionTranslator());
     }
 
     public ReactiveTarantoolTemplate(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
