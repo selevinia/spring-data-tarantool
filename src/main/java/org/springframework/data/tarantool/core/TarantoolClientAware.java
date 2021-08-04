@@ -51,7 +51,7 @@ public interface TarantoolClientAware {
      * @param spaceName name of giving space
      * @return Tarantool space metadata
      */
-    default <T> TarantoolSpaceMetadata requiredSpaceMetadata(String spaceName) {
+    default TarantoolSpaceMetadata requiredSpaceMetadata(String spaceName) {
         return spaceMetadata(spaceName).orElseThrow(() -> new MappingException(String.format("Space metadata not found for space %s", spaceName)));
     }
 
@@ -61,7 +61,7 @@ public interface TarantoolClientAware {
      * @param spaceName name of giving space
      * @return Tarantool space metadata
      */
-    default <T> Optional<TarantoolSpaceMetadata> spaceMetadata(String spaceName) {
+    default Optional<TarantoolSpaceMetadata> spaceMetadata(String spaceName) {
         try {
             return getClient().metadata().getSpaceByName(spaceName);
         } catch (Exception e) {
@@ -74,11 +74,18 @@ public interface TarantoolClientAware {
      *
      * @return version
      */
-    TarantoolVersion getVersion();
+    default TarantoolVersion getVersion() {
+        try {
+            return getClient().getVersion();
+        } catch (Exception e) {
+            throw dataAccessException(e);
+        }
+    }
 
     /**
      * Translate any Tarantool client exception to DataAccessException
      *
+     * @param throwable caught when client method was invoked
      * @return translated exception
      */
     DataAccessException dataAccessException(Throwable throwable);

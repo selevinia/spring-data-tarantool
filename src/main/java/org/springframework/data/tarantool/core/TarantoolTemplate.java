@@ -1,6 +1,5 @@
 package org.springframework.data.tarantool.core;
 
-import io.tarantool.driver.TarantoolVersion;
 import io.tarantool.driver.api.TarantoolClient;
 import io.tarantool.driver.api.TarantoolResult;
 import io.tarantool.driver.api.conditions.Conditions;
@@ -16,8 +15,6 @@ import org.msgpack.value.Value;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
-import org.springframework.dao.DataAccessException;
-import org.springframework.dao.DataRetrievalFailureException;
 import org.springframework.data.mapping.callback.EntityCallbacks;
 import org.springframework.data.tarantool.TarantoolServerConnectionException;
 import org.springframework.data.tarantool.core.convert.MappingTarantoolConverter;
@@ -42,10 +39,9 @@ import java.util.stream.StreamSupport;
  *
  * @author Alexander Rublev
  */
-public class TarantoolTemplate implements ApplicationContextAware, TarantoolOperations {
+public class TarantoolTemplate extends ExceptionTranslatorSupport implements ApplicationContextAware, TarantoolOperations {
     private final TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient;
     private final TarantoolConverter tarantoolConverter;
-    private final TarantoolExceptionTranslator exceptionTranslator;
     private final MessagePackMapper messagePackMapper;
     private final TarantoolTupleMethodsHelper tupleMethodsHelper;
     private @Nullable
@@ -58,9 +54,9 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
     public TarantoolTemplate(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
                              TarantoolConverter tarantoolConverter,
                              TarantoolExceptionTranslator exceptionTranslator) {
+        super(exceptionTranslator);
         this.tarantoolClient = tarantoolClient;
         this.tarantoolConverter = tarantoolConverter;
-        this.exceptionTranslator = exceptionTranslator;
         this.messagePackMapper = tarantoolClient.getConfig().getMessagePackMapper();
         this.tupleMethodsHelper = new TarantoolTupleMethodsHelper(tarantoolConverter, this);
     }
@@ -412,22 +408,6 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
     @Override
     public <T> List<T> callForAll(String functionName, ValueConverter<Value, T> entityConverter) {
         return callForAll(functionName, Collections.emptyList(), entityConverter);
-    }
-
-    @Override
-    public TarantoolVersion getVersion() {
-        return execute(tarantoolClient::getVersion);
-    }
-
-    @Override
-    public DataAccessException dataAccessException(Throwable throwable) {
-        if (throwable instanceof RuntimeException) {
-            DataAccessException dataAccessException = exceptionTranslator.translateExceptionIfPossible((RuntimeException) throwable);
-            if (dataAccessException != null) {
-                return dataAccessException;
-            }
-        }
-        return new DataRetrievalFailureException(throwable.getMessage(), throwable);
     }
 
     private <T, R> CompletableFuture<R> execute(Class<T> entityClass, Function<TarantoolSpaceOperations<TarantoolTuple, TarantoolResult<TarantoolTuple>>, CompletableFuture<R>> operation) {
