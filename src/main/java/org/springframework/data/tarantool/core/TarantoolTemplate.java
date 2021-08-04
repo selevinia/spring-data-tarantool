@@ -127,7 +127,8 @@ public class TarantoolTemplate extends ExceptionTranslatorSupport implements App
                         .map(f -> f.join().stream().findFirst().orElse(null))
                         .collect(Collectors.toList())))
                 .stream()
-                .map(t -> tupleToEntity(t, entityClass))
+                .map(t -> t != null ? tupleToEntity(t, entityClass) : null)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
@@ -237,7 +238,8 @@ public class TarantoolTemplate extends ExceptionTranslatorSupport implements App
                         .map(f -> f.join().stream().findFirst().orElse(null))
                         .collect(Collectors.toList())))
                 .stream()
-                .map(t -> tupleToEntity(t, entityClass))
+                .map(t -> t != null ? tupleToEntity(t, entityClass) : null)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
