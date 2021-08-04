@@ -18,7 +18,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataRetrievalFailureException;
-import org.springframework.data.mapping.MappingException;
 import org.springframework.data.mapping.callback.EntityCallbacks;
 import org.springframework.data.mapping.callback.ReactiveEntityCallbacks;
 import org.springframework.data.tarantool.core.convert.MappingTarantoolConverter;
@@ -182,7 +181,7 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
 
         T entityToUse = entityToInsert(entity);
         String spaceName = spaceName(entityClass);
-        TarantoolSpaceMetadata spaceMetadata = requiredSpaceMetadata(entityClass);
+        TarantoolSpaceMetadata spaceMetadata = requiredSpaceMetadata(spaceName);
         return maybeCallBeforeConvert(entityToUse, spaceName)
                 .flatMap(ent -> {
                     TarantoolTuple tuple = entityToTuple(ent, messagePackMapper, spaceMetadata);
@@ -201,7 +200,7 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
 
         T entityToUse = entityToUpdate(entity);
         String spaceName = spaceName(entityClass);
-        TarantoolSpaceMetadata spaceMetadata = requiredSpaceMetadata(entityClass);
+        TarantoolSpaceMetadata spaceMetadata = requiredSpaceMetadata(spaceName);
         return maybeCallBeforeConvert(entityToUse, spaceName)
                 .flatMap(ent -> {
                     TarantoolTuple tuple = entityToTuple(ent, messagePackMapper, spaceMetadata);
@@ -221,7 +220,7 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
 
         T entityToUse = entityToUpdate(entity);
         String spaceName = spaceName(entityClass);
-        TarantoolSpaceMetadata spaceMetadata = requiredSpaceMetadata(entityClass);
+        TarantoolSpaceMetadata spaceMetadata = requiredSpaceMetadata(spaceName);
         return maybeCallBeforeConvert(entityToUse, spaceName)
                 .flatMap(ent -> {
                     TarantoolTuple tuple = entityToTuple(ent, messagePackMapper, spaceMetadata);
@@ -317,7 +316,8 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
         Assert.notNull(parameters, "Parameters must not be null");
         Assert.notNull(entityClass, "Entity class must not be null");
 
-        Optional<TarantoolSpaceMetadata> spaceMetadata = spaceMetadata(entityClass);
+        TarantoolPersistentEntity<?> entityMetadata = tarantoolConverter.getMappingContext().getPersistentEntity(entityClass);
+        Optional<TarantoolSpaceMetadata> spaceMetadata = entityMetadata != null ? spaceMetadata(entityMetadata.getSpaceName()) : Optional.empty();
         if (spaceMetadata.isPresent()) {
             TarantoolTupleSingleResultMapperFactory resultMapperFactory = tarantoolClient.getResultMapperFactoryFactory().defaultTupleSingleResultMapperFactory();
             return execute(() -> tarantoolClient.callForSingleResult(functionName, mappedTValues(parameters), messagePackMapper,
@@ -366,7 +366,8 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
         Assert.notNull(parameters, "Parameters must not be null");
         Assert.notNull(entityClass, "Entity class must not be null");
 
-        Optional<TarantoolSpaceMetadata> spaceMetadata = spaceMetadata(entityClass);
+        TarantoolPersistentEntity<?> entityMetadata = tarantoolConverter.getMappingContext().getPersistentEntity(entityClass);
+        Optional<TarantoolSpaceMetadata> spaceMetadata = entityMetadata != null ? spaceMetadata(entityMetadata.getSpaceName()) : Optional.empty();
         if (spaceMetadata.isPresent()) {
             TarantoolTupleSingleResultMapperFactory resultMapperFactory = tarantoolClient.getResultMapperFactoryFactory().defaultTupleSingleResultMapperFactory();
             return execute(() -> tarantoolClient.callForSingleResult(functionName, mappedTValues(parameters), messagePackMapper, resultMapperFactory.withDefaultTupleValueConverter(messagePackMapper, spaceMetadata.orElse(null))))
@@ -406,39 +407,8 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
         return executeSerial(tarantoolClient::getVersion);
     }
 
-    private <T, R> Mono<R> execute(Class<T> entityClass, Function<TarantoolSpaceOperations<TarantoolTuple, TarantoolResult<TarantoolTuple>>, CompletableFuture<R>> operation) {
-        return execute(spaceName(entityClass), operation);
-    }
-
-    private <R> Mono<R> execute(String spaceName, Function<TarantoolSpaceOperations<TarantoolTuple, TarantoolResult<TarantoolTuple>>, CompletableFuture<R>> operation) {
-        return Mono.fromFuture(() -> {
-            try {
-                return operation.apply(spaceOps(spaceName));
-            } catch (Throwable throwable) {
-                return CompletableFuture.failedFuture(throwable);
-            }
-        }).onErrorMap(this::translateThrowable);
-    }
-
-    private <R> Mono<R> execute(Supplier<CompletableFuture<R>> supplier) {
-        return Mono.fromFuture(() -> {
-            try {
-                return supplier.get();
-            } catch (Throwable throwable) {
-                return CompletableFuture.failedFuture(throwable);
-            }
-        }).onErrorMap(this::translateThrowable);
-    }
-
-    private <R> R executeSerial(Supplier<R> supplier) {
-        try {
-            return supplier.get();
-        } catch (Exception e) {
-            throw translateThrowable(e);
-        }
-    }
-
-    private RuntimeException translateThrowable(Throwable throwable) {
+    @Override
+    public DataAccessException dataAccessException(Throwable throwable) {
         if (throwable instanceof RuntimeException) {
             DataAccessException dataAccessException = exceptionTranslator.translateExceptionIfPossible((RuntimeException) throwable);
             if (dataAccessException != null) {
@@ -448,13 +418,35 @@ public class ReactiveTarantoolTemplate implements ApplicationContextAware, React
         return new DataRetrievalFailureException(throwable.getMessage(), throwable);
     }
 
-    private <T> TarantoolSpaceMetadata requiredSpaceMetadata(Class<T> entityClass) {
-        return spaceMetadata(entityClass).orElseThrow(() -> new MappingException(String.format("Space metadata not found for space entity %s", entityClass.getSimpleName())));
+    private <T, R> Mono<R> execute(Class<T> entityClass, Function<TarantoolSpaceOperations<TarantoolTuple, TarantoolResult<TarantoolTuple>>, CompletableFuture<R>> operation) {
+        return execute(spaceName(entityClass), operation);
     }
 
-    private <T> Optional<TarantoolSpaceMetadata> spaceMetadata(Class<T> entityClass) {
-        TarantoolPersistentEntity<?> entityMetadata = tarantoolConverter.getMappingContext().getPersistentEntity(entityClass);
-        return entityMetadata != null ? executeSerial(() -> tarantoolClient.metadata().getSpaceByName(entityMetadata.getSpaceName())) : Optional.empty();
+    private <R> Mono<R> execute(String spaceName, Function<TarantoolSpaceOperations<TarantoolTuple, TarantoolResult<TarantoolTuple>>, CompletableFuture<R>> operation) {
+        return Mono.fromFuture(() -> {
+            try {
+                return operation.apply(spaceOperations(spaceName));
+            } catch (Throwable throwable) {
+                return CompletableFuture.failedFuture(throwable);
+            }
+        }).onErrorMap(this::dataAccessException);
     }
 
+    private <R> Mono<R> execute(Supplier<CompletableFuture<R>> supplier) {
+        return Mono.fromFuture(() -> {
+            try {
+                return supplier.get();
+            } catch (Throwable throwable) {
+                return CompletableFuture.failedFuture(throwable);
+            }
+        }).onErrorMap(this::dataAccessException);
+    }
+
+    private <R> R executeSerial(Supplier<R> supplier) {
+        try {
+            return supplier.get();
+        } catch (Exception e) {
+            throw dataAccessException(e);
+        }
+    }
 }

@@ -18,7 +18,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataRetrievalFailureException;
-import org.springframework.data.mapping.MappingException;
 import org.springframework.data.mapping.callback.EntityCallbacks;
 import org.springframework.data.tarantool.TarantoolServerConnectionException;
 import org.springframework.data.tarantool.core.convert.MappingTarantoolConverter;
@@ -187,7 +186,7 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         String spaceName = spaceName(entityClass);
         T entityToUse = entityToInsert(entity);
 
-        TarantoolSpaceMetadata spaceMetadata = requiredSpaceMetadata(entityClass);
+        TarantoolSpaceMetadata spaceMetadata = requiredSpaceMetadata(spaceName);
         TarantoolTuple tuple = entityToTuple(maybeCallBeforeConvert(entityToUse, spaceName), messagePackMapper, spaceMetadata);
         maybeCallBeforeSave(entityToUse, tuple, spaceName);
 
@@ -206,7 +205,7 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         String spaceName = spaceName(entityClass);
         T entityToUse = entityToUpdate(entity);
 
-        TarantoolSpaceMetadata spaceMetadata = requiredSpaceMetadata(entityClass);
+        TarantoolSpaceMetadata spaceMetadata = requiredSpaceMetadata(spaceName);
         TarantoolTuple tuple = entityToTuple(maybeCallBeforeConvert(entityToUse, spaceName), messagePackMapper, spaceMetadata);
         maybeCallBeforeSave(entityToUse, tuple, spaceName);
 
@@ -226,7 +225,7 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         String spaceName = spaceName(entityClass);
         T entityToUse = entityToUpdate(entity);
 
-        TarantoolSpaceMetadata spaceMetadata = requiredSpaceMetadata(entityClass);
+        TarantoolSpaceMetadata spaceMetadata = requiredSpaceMetadata(spaceName);
         TarantoolTuple tuple = entityToTuple(maybeCallBeforeConvert(entityToUse, spaceName), messagePackMapper, spaceMetadata);
         maybeCallBeforeSave(entityToUse, tuple, spaceName);
 
@@ -322,7 +321,8 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         Assert.notNull(parameters, "Parameters must not be null");
         Assert.notNull(entityClass, "Entity class must not be null");
 
-        Optional<TarantoolSpaceMetadata> spaceMetadata = spaceMetadata(entityClass);
+        TarantoolPersistentEntity<?> entityMetadata = tarantoolConverter.getMappingContext().getPersistentEntity(entityClass);
+        Optional<TarantoolSpaceMetadata> spaceMetadata = entityMetadata != null ? spaceMetadata(entityMetadata.getSpaceName()) : Optional.empty();
         if (spaceMetadata.isPresent()) {
             TarantoolTupleSingleResultMapperFactory resultMapperFactory = tarantoolClient.getResultMapperFactoryFactory().defaultTupleSingleResultMapperFactory();
             TarantoolResult<TarantoolTuple> result = unwrap(execute(() -> tarantoolClient.callForSingleResult(functionName, mappedTValues(parameters), messagePackMapper,
@@ -373,7 +373,8 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
 
     @Override
     public <T> List<T> callForAll(String functionName, List<?> parameters, Class<T> entityClass) {
-        Optional<TarantoolSpaceMetadata> spaceMetadata = spaceMetadata(entityClass);
+        TarantoolPersistentEntity<?> entityMetadata = tarantoolConverter.getMappingContext().getPersistentEntity(entityClass);
+        Optional<TarantoolSpaceMetadata> spaceMetadata = entityMetadata != null ? spaceMetadata(entityMetadata.getSpaceName()) : Optional.empty();
         if (spaceMetadata.isPresent()) {
             TarantoolTupleSingleResultMapperFactory resultMapperFactory = tarantoolClient.getResultMapperFactoryFactory().defaultTupleSingleResultMapperFactory();
             TarantoolResult<TarantoolTuple> result = unwrap(execute(() -> tarantoolClient.callForSingleResult(functionName, mappedTValues(parameters), messagePackMapper,
@@ -418,37 +419,8 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         return execute(tarantoolClient::getVersion);
     }
 
-    private <T, R> CompletableFuture<R> execute(Class<T> entityClass, Function<TarantoolSpaceOperations<TarantoolTuple, TarantoolResult<TarantoolTuple>>, CompletableFuture<R>> operation) {
-        return execute(spaceName(entityClass), operation);
-    }
-
-    private <R> CompletableFuture<R> execute(String spaceName, Function<TarantoolSpaceOperations<TarantoolTuple, TarantoolResult<TarantoolTuple>>, CompletableFuture<R>> operation) {
-        try {
-            return operation.apply(spaceOps(spaceName));
-        } catch (Throwable throwable) {
-            return CompletableFuture.failedFuture(translateThrowable(throwable));
-        }
-    }
-
-    private <R> R execute(Supplier<R> supplier) {
-        try {
-            return supplier.get();
-        } catch (Exception e) {
-            throw translateThrowable(e);
-        }
-    }
-
-    private <R> R unwrap(Future<R> f) {
-        try {
-            return f.get();
-        } catch (ExecutionException e) {
-            throw translateThrowable(e.getCause());
-        } catch (InterruptedException e) {
-            throw new TarantoolServerConnectionException(e.getMessage(), e);
-        }
-    }
-
-    private RuntimeException translateThrowable(Throwable throwable) {
+    @Override
+    public DataAccessException dataAccessException(Throwable throwable) {
         if (throwable instanceof RuntimeException) {
             DataAccessException dataAccessException = exceptionTranslator.translateExceptionIfPossible((RuntimeException) throwable);
             if (dataAccessException != null) {
@@ -458,13 +430,33 @@ public class TarantoolTemplate implements ApplicationContextAware, TarantoolOper
         return new DataRetrievalFailureException(throwable.getMessage(), throwable);
     }
 
-    private <T> TarantoolSpaceMetadata requiredSpaceMetadata(Class<T> entityClass) {
-        return spaceMetadata(entityClass).orElseThrow(() -> new MappingException(String.format("Space metadata not found for space entity %s", entityClass.getSimpleName())));
+    private <T, R> CompletableFuture<R> execute(Class<T> entityClass, Function<TarantoolSpaceOperations<TarantoolTuple, TarantoolResult<TarantoolTuple>>, CompletableFuture<R>> operation) {
+        return execute(spaceName(entityClass), operation);
     }
 
-    private <T> Optional<TarantoolSpaceMetadata> spaceMetadata(Class<T> entityClass) {
-        TarantoolPersistentEntity<?> entityMetadata = tarantoolConverter.getMappingContext().getPersistentEntity(entityClass);
-        return entityMetadata != null ? execute(() -> tarantoolClient.metadata().getSpaceByName(entityMetadata.getSpaceName())) : Optional.empty();
+    private <R> CompletableFuture<R> execute(String spaceName, Function<TarantoolSpaceOperations<TarantoolTuple, TarantoolResult<TarantoolTuple>>, CompletableFuture<R>> operation) {
+        try {
+            return operation.apply(spaceOperations(spaceName));
+        } catch (Throwable throwable) {
+            return CompletableFuture.failedFuture(dataAccessException(throwable));
+        }
     }
 
+    private <R> R execute(Supplier<R> supplier) {
+        try {
+            return supplier.get();
+        } catch (Exception e) {
+            throw dataAccessException(e);
+        }
+    }
+
+    private <R> R unwrap(Future<R> f) {
+        try {
+            return f.get();
+        } catch (ExecutionException e) {
+            throw dataAccessException(e.getCause());
+        } catch (InterruptedException e) {
+            throw new TarantoolServerConnectionException(e.getMessage(), e);
+        }
+    }
 }
