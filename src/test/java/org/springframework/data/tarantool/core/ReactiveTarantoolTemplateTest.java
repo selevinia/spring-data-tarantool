@@ -22,6 +22,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.time.ZoneId;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -31,7 +32,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 public class ReactiveTarantoolTemplateTest extends AbstractTarantoolTemplateTest {
-
     private ReactiveTarantoolTemplate reactiveTarantoolTemplate;
 
     @BeforeEach
@@ -175,10 +175,15 @@ public class ReactiveTarantoolTemplateTest extends AbstractTarantoolTemplateTest
             }
         });
 
-        reactiveTarantoolTemplate.selectByIds(Flux.just("1", "2", "3"), Message.class).as(StepVerifier::create)
-                .thenConsumeWhile(messageOne::equals)
-                .thenConsumeWhile(messageTwo::equals)
-                .thenConsumeWhile(messageThree::equals)
+        reactiveTarantoolTemplate.selectByIds(Flux.just("1", "2", "3"), Message.class)
+                .collectSortedList(Comparator.comparing(Message::getId))
+                .as(StepVerifier::create)
+                .assertNext(messages -> {
+                    assertThat(messages).hasSize(3);
+                    assertThat(messages.get(0)).isEqualTo(messageOne);
+                    assertThat(messages.get(1)).isEqualTo(messageTwo);
+                    assertThat(messages.get(2)).isEqualTo(messageThree);
+                })
                 .verifyComplete();
 
         verify(tarantoolClient, times(3)).space(any());
@@ -310,12 +315,26 @@ public class ReactiveTarantoolTemplateTest extends AbstractTarantoolTemplateTest
             TarantoolIndexQuery indexQuery = conditions.toIndexQuery(metadataOperations, spaceMetadata);
             assertThat(indexQuery.getIndexId()).isEqualTo(0);
             assertThat(indexQuery.getKeyValues()).hasSize(1);
-            return CompletableFuture.completedFuture(tupleResult(message));
+
+            if (indexQuery.getKeyValues().get(0).equals("1")) {
+                return CompletableFuture.completedFuture(tupleResult(messageOne));
+            } else if (indexQuery.getKeyValues().get(0).equals("2")) {
+                return CompletableFuture.completedFuture(tupleResult(messageTwo));
+            } else {
+                return CompletableFuture.completedFuture(tupleResult(messageThree));
+            }
         });
 
         Conditions query = Conditions.any();
-        reactiveTarantoolTemplate.update(query, message, Message.class).as(StepVerifier::create)
-                .expectNext(message, message, message)
+        reactiveTarantoolTemplate.update(query, message, Message.class)
+                .collectSortedList(Comparator.comparing(Message::getId))
+                .as(StepVerifier::create)
+                .assertNext(messages -> {
+                    assertThat(messages).hasSize(3);
+                    assertThat(messages.get(0)).isEqualTo(messageOne);
+                    assertThat(messages.get(1)).isEqualTo(messageTwo);
+                    assertThat(messages.get(2)).isEqualTo(messageThree);
+                })
                 .verifyComplete();
 
         assertThat(beforeConvertEntity).isSameAs(message);
@@ -467,15 +486,33 @@ public class ReactiveTarantoolTemplateTest extends AbstractTarantoolTemplateTest
 
     @Test
     void shouldDeleteWithConditions() {
-        Message message = messageOne;
+        TarantoolSpaceMetadata spaceMetadata = spaceMetadata();
 
         when(tarantoolClient.space(any())).thenReturn(spaceOperations);
+        when(metadataOperations.getIndexById(spaceMetadata.getSpaceName(), 0)).thenReturn(Optional.of(indexMetadata()));
         when(spaceOperations.select(any())).thenReturn(CompletableFuture.completedFuture(tupleResult(messageOne, messageTwo, messageThree)));
-        when(spaceOperations.delete(any())).thenReturn(CompletableFuture.completedFuture(tupleResult(message)));
+        when(spaceOperations.delete(any())).then(invocation -> {
+            Conditions conditions = invocation.getArgument(0);
+            TarantoolIndexQuery indexQuery = conditions.toIndexQuery(metadataOperations, spaceMetadata);
+            if (indexQuery.getKeyValues().get(0).equals("1")) {
+                return CompletableFuture.completedFuture(tupleResult(messageOne));
+            } else if (indexQuery.getKeyValues().get(0).equals("2")) {
+                return CompletableFuture.completedFuture(tupleResult(messageTwo));
+            } else {
+                return CompletableFuture.completedFuture(tupleResult(messageThree));
+            }
+        });
 
         Conditions query = Conditions.any();
-        reactiveTarantoolTemplate.delete(query, Message.class).as(StepVerifier::create)
-                .expectNext(message, message, message)
+        reactiveTarantoolTemplate.delete(query, Message.class)
+                .collectSortedList(Comparator.comparing(Message::getId))
+                .as(StepVerifier::create)
+                .assertNext(messages -> {
+                    assertThat(messages).hasSize(3);
+                    assertThat(messages.get(0)).isEqualTo(messageOne);
+                    assertThat(messages.get(1)).isEqualTo(messageTwo);
+                    assertThat(messages.get(2)).isEqualTo(messageThree);
+                })
                 .verifyComplete();
 
         verify(tarantoolClient, times(4)).space(any());
