@@ -104,6 +104,7 @@ public abstract class TarantoolConfigurationSupport {
         mappingContext.setInitialEntitySet(getInitialEntitySet());
         mappingContext.setSimpleTypeHolder(TarantoolSimpleTypeHolder.HOLDER);
         mappingContext.setFieldNamingStrategy(fieldNamingStrategy());
+        mappingContext.afterPropertiesSet();
 
         return mappingContext;
     }

@@ -7,34 +7,28 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.springframework.data.mapping.model.SnakeCaseFieldNamingStrategy;
 import org.springframework.data.tarantool.TarantoolDataRetrievalException;
-import org.springframework.data.tarantool.config.client.DefaultTarantoolClientFactory;
-import org.springframework.data.tarantool.config.client.TarantoolClientFactory;
 import org.springframework.data.tarantool.config.client.TarantoolClientOptions;
-import org.springframework.data.tarantool.core.DefaultTarantoolExceptionTranslator;
 import org.springframework.data.tarantool.core.ReactiveTarantoolTemplate;
-import org.springframework.data.tarantool.core.TarantoolExceptionTranslator;
-import org.springframework.data.tarantool.core.convert.MappingTarantoolConverter;
-import org.springframework.data.tarantool.core.convert.TarantoolCustomConversions;
 import org.springframework.data.tarantool.core.mapping.BasicMapId;
 import org.springframework.data.tarantool.core.mapping.MapId;
 import org.springframework.data.tarantool.core.mapping.MapIdFactory;
 import org.springframework.data.tarantool.core.mapping.TarantoolMappingContext;
-import org.springframework.data.tarantool.integration.core.convert.LocaleToStringConverter;
-import org.springframework.data.tarantool.integration.core.convert.StringToLocaleConverter;
 import org.springframework.data.tarantool.integration.domain.*;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.io.Serializable;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.function.Consumer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.TestInstance.Lifecycle;
+import static org.springframework.data.tarantool.integration.core.util.AssertConsumer.*;
+import static org.springframework.data.tarantool.integration.core.util.TestConfigProvider.*;
+import static org.springframework.data.tarantool.integration.core.util.TestData.*;
 
 /**
  * Class contains all test methods for Tarantool reactive template usage
@@ -48,18 +42,8 @@ public abstract class AbstractReactiveTarantoolTemplateTest {
 
     @BeforeAll
     void setUp() {
-        TarantoolClientFactory clientFactory = new DefaultTarantoolClientFactory(getOptions());
-
-        TarantoolMappingContext mappingContext = new TarantoolMappingContext();
-        mappingContext.setFieldNamingStrategy(new SnakeCaseFieldNamingStrategy());
-
-        MappingTarantoolConverter converter = new MappingTarantoolConverter(mappingContext);
-        converter.setCustomConversions(new TarantoolCustomConversions(List.of(new LocaleToStringConverter(), new StringToLocaleConverter())));
-        converter.afterPropertiesSet();
-
-        TarantoolExceptionTranslator exceptionTranslator = new DefaultTarantoolExceptionTranslator();
-
-        reactiveTarantoolTemplate = new ReactiveTarantoolTemplate(clientFactory.createClient(), converter, exceptionTranslator);
+        TarantoolMappingContext mappingContext = mappingContext();
+        reactiveTarantoolTemplate = new ReactiveTarantoolTemplate(clientFactory(getOptions()).createClient(), converter(mappingContext), exceptionTranslator());
     }
 
     @BeforeEach
@@ -679,123 +663,4 @@ public abstract class AbstractReactiveTarantoolTemplateTest {
                 .verifyComplete();
     }
 
-    private Consumer<Article> articleAssertConsumer(Article expected) {
-        return (Article actual) -> {
-            assertThat(actual.getId()).isEqualTo(expected.getId());
-            assertThat(actual.getName()).isEqualTo(expected.getName());
-            assertThat(actual.getSlug()).isEqualTo(expected.getSlug());
-            assertThat(actual.getPublishDate().withNano(0)).isEqualTo(expected.getPublishDate().withNano(0));
-            assertThat(actual.getUserId()).isEqualTo(expected.getUserId());
-            assertThat(actual.getTags()).isEqualTo(expected.getTags());
-            assertThat(actual.getLikes()).isEqualTo(expected.getLikes());
-        };
-    }
-
-    private Consumer<TranslatedArticle> articleAssertConsumer(TranslatedArticle expected) {
-        return (TranslatedArticle actual) -> {
-            assertThat(actual.getId()).isEqualTo(expected.getId());
-            assertThat(actual.getName()).isEqualTo(expected.getName());
-            assertThat(actual.getText()).isEqualTo(expected.getText());
-        };
-    }
-
-    private Consumer<TranslatedArticleWithFlatKey> articleAssertConsumer(TranslatedArticleWithFlatKey expected) {
-        return (TranslatedArticleWithFlatKey actual) -> {
-            assertThat(actual.getArticleId()).isEqualTo(expected.getArticleId());
-            assertThat(actual.getLocale()).isEqualTo(expected.getLocale());
-            assertThat(actual.getName()).isEqualTo(expected.getName());
-            assertThat(actual.getText()).isEqualTo(expected.getText());
-        };
-    }
-
-    private Consumer<TranslatedArticleWithMapId> articleAssertConsumer(TranslatedArticleWithMapId expected) {
-        return (TranslatedArticleWithMapId actual) -> {
-            assertThat(actual.getArticleId()).isEqualTo(expected.getArticleId());
-            assertThat(actual.getLocale()).isEqualTo(expected.getLocale());
-            assertThat(actual.getName()).isEqualTo(expected.getName());
-            assertThat(actual.getText()).isEqualTo(expected.getText());
-        };
-    }
-
-    private static User user() {
-        return User.builder()
-                .id(UUID.randomUUID())
-                .firstName("Alexey")
-                .lastName("Kuzin")
-                .birthDate(LocalDate.now().minusYears(24))
-                .age(24)
-                .active(true)
-                .email("akuzin@mail.ru")
-                .address(Address.builder()
-                        .city("Kandalaksha")
-                        .street("Lenina 12-2")
-                        .postcode("123456")
-                        .build())
-                .build();
-    }
-
-    private static Article article() {
-        return Article.builder()
-                .id(UUID.randomUUID())
-                .name("Selevinia eats tarantool")
-                .slug("About Selevinia")
-                .publishDate(LocalDateTime.now())
-                .userId(UUID.randomUUID())
-                .tags(List.of(new Tag("selevinia"), new Tag("tarantool")))
-                .likes(1)
-                .build();
-    }
-
-    private static Article simpleArticle() {
-        return Article.builder()
-                .id(UUID.randomUUID())
-                .name("Selevinia eats tarantool")
-                .publishDate(LocalDateTime.now())
-                .userId(UUID.randomUUID())
-                .build();
-    }
-
-    private static Article emptyArticle() {
-        return Article.builder()
-                .id(UUID.randomUUID())
-                .build();
-    }
-
-    private static TranslatedArticle translatedArticle() {
-        return TranslatedArticle.builder()
-                .id(
-                        TranslatedArticleKey.builder()
-                                .articleId(UUID.randomUUID())
-                                .locale(Locale.ENGLISH)
-                                .build()
-                )
-                .name("Selevinia eats tarantool")
-                .build();
-    }
-
-    private static TranslatedArticleWithFlatKey translatedArticleWithFlatKey() {
-        return TranslatedArticleWithFlatKey.builder()
-                .articleId(UUID.randomUUID())
-                .locale(Locale.ENGLISH)
-                .name("Selevinia eats tarantool")
-                .build();
-    }
-
-    private static TranslatedArticleWithMapId translatedArticleWithMapId() {
-        return TranslatedArticleWithMapId.builder()
-                .articleId(UUID.randomUUID())
-                .locale(Locale.ENGLISH)
-                .name("Selevinia eats tarantool")
-                .build();
-    }
-
-    private static Comment comment() {
-        return Comment.builder()
-                .id(UUID.randomUUID())
-                .articleId(UUID.randomUUID())
-                .userId(UUID.randomUUID())
-                .value("This is the best article about tarantool")
-                .likes(1)
-                .build();
-    }
 }
