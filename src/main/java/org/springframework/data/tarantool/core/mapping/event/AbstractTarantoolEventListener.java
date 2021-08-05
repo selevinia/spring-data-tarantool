@@ -10,7 +10,7 @@ import org.springframework.core.GenericTypeResolver;
  *
  * @author Alexander Rublev
  */
-public class AbstractTarantoolEventListener<E> implements ApplicationListener<TarantoolMappingEvent<?>> {
+public abstract class AbstractTarantoolEventListener<E> implements ApplicationListener<TarantoolMappingEvent<?>> {
     protected static final Logger log = LoggerFactory.getLogger(AbstractTarantoolEventListener.class);
     private final Class<?> domainClass;
 

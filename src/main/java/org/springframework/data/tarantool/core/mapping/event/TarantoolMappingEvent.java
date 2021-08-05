@@ -9,6 +9,8 @@ import org.springframework.util.Assert;
  * @author Tatiana Blinova
  */
 public class TarantoolMappingEvent<T> extends ApplicationEvent {
+    private static final long serialVersionUID = 1L;
+
     private final String spaceName;
 
     /**

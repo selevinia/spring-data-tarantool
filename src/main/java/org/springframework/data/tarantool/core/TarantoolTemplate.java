@@ -307,7 +307,7 @@ public class TarantoolTemplate extends ExceptionTranslatorSupport implements App
                 .map(tuples -> tuples.stream()
                         .findFirst()
                         .map(t -> {
-                            maybeEmitEvent(new AfterDeleteEvent<>(t, entityClass, spaceName(entityClass)));
+                            maybeEmitEvent(new AfterDeleteEvent<>(t, entityClass, spaceName));
                             return tupleToEntity(t, entityClass);
                         })
                         .orElse(null))
