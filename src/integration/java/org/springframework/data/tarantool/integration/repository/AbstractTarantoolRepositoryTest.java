@@ -9,6 +9,7 @@ import org.springframework.data.tarantool.integration.domain.DistributedUser;
 import org.springframework.data.tarantool.integration.domain.TranslatedArticle;
 import org.springframework.data.tarantool.integration.domain.TranslatedArticleKey;
 import org.springframework.data.tarantool.integration.domain.User;
+import org.springframework.data.tarantool.integration.repository.util.CaptureEventListener;
 import org.springframework.data.tarantool.repository.Query;
 import org.springframework.data.tarantool.repository.TarantoolRepository;
 
@@ -38,9 +39,13 @@ public abstract class AbstractTarantoolRepositoryTest {
     @Autowired
     protected TarantoolOperations operations;
 
+    @Autowired
+    protected CaptureEventListener eventListener;
+
     @BeforeEach
     void cleanup() {
         operations.delete(Conditions.any(), User.class);
+        eventListener.clear();
     }
 
     @Test
@@ -61,6 +66,9 @@ public abstract class AbstractTarantoolRepositoryTest {
             assertThat(actual.getId()).isEqualTo(user.getId());
             assertThat(actual.getVersion()).isEqualTo(0L);
         });
+
+        assertThat(eventListener.getBeforeSave()).hasSize(1);
+        assertThat(eventListener.getAfterSave()).hasSize(1);
     }
 
     @Test

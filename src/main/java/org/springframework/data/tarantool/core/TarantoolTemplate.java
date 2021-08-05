@@ -22,9 +22,7 @@ import org.springframework.data.tarantool.TarantoolServerConnectionException;
 import org.springframework.data.tarantool.core.convert.MappingTarantoolConverter;
 import org.springframework.data.tarantool.core.convert.TarantoolConverter;
 import org.springframework.data.tarantool.core.mapping.TarantoolPersistentEntity;
-import org.springframework.data.tarantool.core.mapping.event.BeforeConvertCallback;
-import org.springframework.data.tarantool.core.mapping.event.BeforeSaveCallback;
-import org.springframework.data.tarantool.core.mapping.event.TarantoolMappingEvent;
+import org.springframework.data.tarantool.core.mapping.event.*;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
@@ -143,7 +141,7 @@ public class TarantoolTemplate extends ExceptionTranslatorSupport implements App
                         .map(f -> f.join().stream().findFirst().orElse(null))
                         .collect(Collectors.toList())))
                 .stream()
-                .map(t -> t != null ? tupleToEntity(t, entityClass) : null)
+                .map(t -> t != null ? mapToEntity(t, entityClass) : null)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
@@ -156,7 +154,7 @@ public class TarantoolTemplate extends ExceptionTranslatorSupport implements App
         return unwrap(execute(entityClass, spaceOps -> spaceOps.select(query)))
                 .stream()
                 .findFirst()
-                .map(t -> tupleToEntity(t, entityClass))
+                .map(t -> mapToEntity(t, entityClass))
                 .orElse(null);
     }
 
@@ -167,8 +165,15 @@ public class TarantoolTemplate extends ExceptionTranslatorSupport implements App
 
         return unwrap(execute(entityClass, spaceOps -> spaceOps.select(query)))
                 .stream()
-                .map(t -> tupleToEntity(t, entityClass))
+                .map(t -> mapToEntity(t, entityClass))
                 .collect(Collectors.toList());
+    }
+
+    private <T> T mapToEntity(TarantoolTuple tuple, Class<T> entityClass) {
+        maybeEmitEvent(new AfterLoadEvent<>(tuple, entityClass, spaceName(entityClass)));
+        T entity = tupleToEntity(tuple, entityClass);
+        maybeEmitEvent(new AfterConvertEvent<>(tuple, entity, spaceName(entityClass)));
+        return entity;
     }
 
     @Override
@@ -202,11 +207,15 @@ public class TarantoolTemplate extends ExceptionTranslatorSupport implements App
         TarantoolSpaceMetadata spaceMetadata = requiredSpaceMetadata(spaceName);
         TarantoolTuple tuple = entityToTuple(maybeCallBeforeConvert(entityToUse, spaceName), messagePackMapper, spaceMetadata);
         maybeCallBeforeSave(entityToUse, tuple, spaceName);
+        maybeEmitEvent(new BeforeSaveEvent<>(entityToUse, spaceName));
 
         return unwrap(execute(spaceName, spaceOps -> spaceOps.insert(tuple)))
                 .stream()
                 .findFirst()
-                .map(t -> tupleToEntity(t, entityClass))
+                .map(t -> {
+                    maybeEmitEvent(new AfterSaveEvent<>(entityToUse, spaceName));
+                    return tupleToEntity(t, entityClass);
+                })
                 .orElse(null);
     }
 
@@ -221,11 +230,15 @@ public class TarantoolTemplate extends ExceptionTranslatorSupport implements App
         TarantoolSpaceMetadata spaceMetadata = requiredSpaceMetadata(spaceName);
         TarantoolTuple tuple = entityToTuple(maybeCallBeforeConvert(entityToUse, spaceName), messagePackMapper, spaceMetadata);
         maybeCallBeforeSave(entityToUse, tuple, spaceName);
+        maybeEmitEvent(new BeforeSaveEvent<>(entityToUse, spaceName));
 
         return unwrap(execute(spaceName, spaceOps -> spaceOps.replace(tuple)))
                 .stream()
                 .findFirst()
-                .map(t -> tupleToEntity(t, entityClass))
+                .map(t -> {
+                    maybeEmitEvent(new AfterSaveEvent<>(entityToUse, spaceName));
+                    return tupleToEntity(t, entityClass);
+                })
                 .orElse(null);
     }
 
@@ -241,6 +254,7 @@ public class TarantoolTemplate extends ExceptionTranslatorSupport implements App
         TarantoolSpaceMetadata spaceMetadata = requiredSpaceMetadata(spaceName);
         TarantoolTuple tuple = entityToTuple(maybeCallBeforeConvert(entityToUse, spaceName), messagePackMapper, spaceMetadata);
         maybeCallBeforeSave(entityToUse, tuple, spaceName);
+        maybeEmitEvent(new BeforeSaveEvent<>(entityToUse, spaceName));
 
         TupleOperations operations = tupleMethodsHelper.prepareUpdateOperations(tuple);
         TarantoolResult<TarantoolTuple> sr = unwrap(execute(spaceName, spaceOps -> spaceOps.select(query)));
@@ -250,9 +264,12 @@ public class TarantoolTemplate extends ExceptionTranslatorSupport implements App
         }).collect(Collectors.toList());
 
         return unwrap(CompletableFuture.allOf(futures.toArray(new CompletableFuture<?>[0]))
-                .thenApply(v -> futures.stream()
-                        .map(f -> f.join().stream().findFirst().orElse(null))
-                        .collect(Collectors.toList())))
+                .thenApply(v -> {
+                    maybeEmitEvent(new AfterSaveEvent<>(entityToUse, spaceName));
+                    return futures.stream()
+                            .map(f -> f.join().stream().findFirst().orElse(null))
+                            .collect(Collectors.toList());
+                }))
                 .stream()
                 .map(t -> t != null ? tupleToEntity(t, entityClass) : null)
                 .filter(Objects::nonNull)
@@ -268,7 +285,10 @@ public class TarantoolTemplate extends ExceptionTranslatorSupport implements App
         return unwrap(execute(entityClass, spaceOps -> spaceOps.delete(query)))
                 .stream()
                 .findFirst()
-                .map(t -> tupleToEntity(t, entityClass))
+                .map(t -> {
+                    maybeEmitEvent(new AfterDeleteEvent<>(t, entityClass, spaceName(entityClass)));
+                    return tupleToEntity(t, entityClass);
+                })
                 .orElse(null);
     }
 
@@ -286,7 +306,10 @@ public class TarantoolTemplate extends ExceptionTranslatorSupport implements App
                 })
                 .map(tuples -> tuples.stream()
                         .findFirst()
-                        .map(t -> tupleToEntity(t, entityClass))
+                        .map(t -> {
+                            maybeEmitEvent(new AfterDeleteEvent<>(t, entityClass, spaceName(entityClass)));
+                            return tupleToEntity(t, entityClass);
+                        })
                         .orElse(null))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
@@ -301,7 +324,10 @@ public class TarantoolTemplate extends ExceptionTranslatorSupport implements App
         return unwrap(execute(entityClass, spaceOps -> spaceOps.delete(query)))
                 .stream()
                 .findFirst()
-                .map(tuples -> tupleToEntity(tuples, entityClass))
+                .map(t -> {
+                    maybeEmitEvent(new AfterDeleteEvent<>(t, entityClass, spaceName(entityClass)));
+                    return tupleToEntity(t, entityClass);
+                })
                 .orElse(null);
     }
 

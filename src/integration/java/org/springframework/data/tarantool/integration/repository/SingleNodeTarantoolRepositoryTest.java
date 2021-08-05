@@ -11,6 +11,7 @@ import org.springframework.data.tarantool.integration.config.SingleNodeTarantool
 import org.springframework.data.tarantool.integration.core.convert.LocaleToStringConverter;
 import org.springframework.data.tarantool.integration.core.convert.StringToLocaleConverter;
 import org.springframework.data.tarantool.integration.domain.User;
+import org.springframework.data.tarantool.integration.repository.util.CaptureEventListener;
 import org.springframework.data.tarantool.repository.Sort;
 import org.springframework.data.tarantool.repository.config.EnableTarantoolRepositories;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
@@ -45,6 +46,11 @@ public class SingleNodeTarantoolRepositoryTest extends AbstractTarantoolReposito
         @Override
         protected List<?> customConverters() {
             return List.of(new LocaleToStringConverter(), new StringToLocaleConverter());
+        }
+
+        @Bean
+        public CaptureEventListener eventListener() {
+            return new CaptureEventListener();
         }
     }
 

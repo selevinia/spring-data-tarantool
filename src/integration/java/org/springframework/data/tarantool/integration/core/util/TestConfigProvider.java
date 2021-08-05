@@ -39,4 +39,8 @@ public class TestConfigProvider {
     public static TarantoolExceptionTranslator exceptionTranslator() {
         return new DefaultTarantoolExceptionTranslator();
     }
+
+    public static CaptureEventListener eventListener() {
+        return new CaptureEventListener();
+    }
 }

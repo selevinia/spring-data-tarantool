@@ -14,6 +14,9 @@ import org.springframework.data.tarantool.core.mapping.BasicMapId;
 import org.springframework.data.tarantool.core.mapping.MapId;
 import org.springframework.data.tarantool.core.mapping.MapIdFactory;
 import org.springframework.data.tarantool.core.mapping.TarantoolMappingContext;
+import org.springframework.data.tarantool.core.mapping.event.AfterDeleteEvent;
+import org.springframework.data.tarantool.core.mapping.event.TarantoolMappingEvent;
+import org.springframework.data.tarantool.integration.core.util.CaptureEventListener;
 import org.springframework.data.tarantool.integration.domain.*;
 
 import java.io.Serializable;
@@ -32,15 +35,17 @@ import static org.springframework.data.tarantool.integration.core.util.TestData.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class AbstractTarantoolTemplateTest {
-
+    private CaptureEventListener eventListener;
     private TarantoolTemplate tarantoolTemplate;
 
     public abstract TarantoolClientOptions getOptions();
 
     @BeforeAll
     void setUp() {
+        eventListener = eventListener();
         TarantoolMappingContext mappingContext = mappingContext();
         tarantoolTemplate = new TarantoolTemplate(clientFactory(getOptions()).createClient(), converter(mappingContext), exceptionTranslator());
+        tarantoolTemplate.setApplicationEventPublisher(event -> eventListener.onApplicationEvent((TarantoolMappingEvent<?>) event));
     }
 
     @BeforeEach
@@ -49,6 +54,8 @@ public abstract class AbstractTarantoolTemplateTest {
         tarantoolTemplate.delete(Conditions.any(), User.class);
         tarantoolTemplate.delete(Conditions.any(), Comment.class);
         tarantoolTemplate.delete(Conditions.any(), TranslatedArticle.class);
+
+        eventListener.clear();
     }
 
     @Test
@@ -70,6 +77,11 @@ public abstract class AbstractTarantoolTemplateTest {
 
         selected = tarantoolTemplate.selectById(article.getId(), Article.class);
         assertThat(selected).isEqualTo(article);
+
+        assertThat(eventListener.getBeforeSave()).hasSize(1);
+        assertThat(eventListener.getAfterSave()).hasSize(1);
+        assertThat(eventListener.getAfterLoad()).extracting(TarantoolMappingEvent::getSpaceName).containsOnly("articles");
+        assertThat(eventListener.getAfterConvert()).extracting(TarantoolMappingEvent::getSource).containsOnly(selected);
     }
 
     @Test
@@ -138,6 +150,9 @@ public abstract class AbstractTarantoolTemplateTest {
         article.setLikes(10);
         inserted = tarantoolTemplate.replace(article, Article.class);
         assertThat(inserted).isEqualTo(article);
+
+        assertThat(eventListener.getBeforeSave()).hasSize(2);
+        assertThat(eventListener.getAfterSave()).hasSize(2);
     }
 
     @Test
@@ -149,6 +164,11 @@ public abstract class AbstractTarantoolTemplateTest {
 
         Article selected = tarantoolTemplate.selectById(article.getId(), Article.class);
         assertThat(selected).isEqualTo(article);
+
+        assertThat(eventListener.getBeforeSave()).hasSize(1);
+        assertThat(eventListener.getAfterSave()).hasSize(1);
+        assertThat(eventListener.getAfterLoad()).hasSize(1);
+        assertThat(eventListener.getAfterConvert()).hasSize(1);
     }
 
     @Test
@@ -161,6 +181,8 @@ public abstract class AbstractTarantoolTemplateTest {
         Article selected = tarantoolTemplate.selectById(article.getId(), Article.class);
         assertThat(selected).isEqualTo(article);
 
+        eventListener.clear();
+
         Article partialArticle = Article.builder()
                 .tags(List.of(new Tag("test")))
                 .likes(article.getLikes() + 1)
@@ -169,6 +191,9 @@ public abstract class AbstractTarantoolTemplateTest {
         article.setLikes(partialArticle.getLikes());
         List<Article> updated = tarantoolTemplate.update(Conditions.indexEquals(TarantoolIndexQuery.PRIMARY, List.of(article.getId())), partialArticle, Article.class);
         assertWith(updated.get(0), articleAssertConsumer(article));
+
+        assertThat(eventListener.getBeforeSave()).hasSize(1);
+        assertThat(eventListener.getAfterSave()).hasSize(1);
     }
 
     @Test
@@ -302,6 +327,9 @@ public abstract class AbstractTarantoolTemplateTest {
 
         count = tarantoolTemplate.count(Article.class);
         assertThat(count).isEqualTo(0L);
+
+        assertThat(eventListener.getAfterDelete()).hasSize(2);
+        assertThat(eventListener.getAfterDelete().get(0)).extracting(AfterDeleteEvent::getType).isEqualTo(Article.class);
     }
 
     @Test
