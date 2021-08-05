@@ -19,7 +19,7 @@ from [Project Reactor](https://projectreactor.io/) like Spring WebFlux do.
 ## Tarantool compatibility
 |`spring-data-tarantool` Version | Tarantool Version
 | :----------- | :----: |
-| 0.1.x | 1.10.x, 2.x
+| 0.2.x | 1.10.x, 2.x
 
 ## How to use in your project
 
@@ -131,7 +131,8 @@ class ApplicationConfig extends AbstractReactiveTarantoolConfiguration {
 | :----------- | :----: |
 |0.x.x | 2.5.x
 
-To use Spring Data Tarantool with Spring Boot following starters may be used
+To use Spring Data Tarantool with Spring Boot following starters may be used:
+
 * For synchronous data operations
 ```maven
 <dependencies>
@@ -165,9 +166,9 @@ To use Spring Data Tarantool with Spring Boot following starters may be used
 </dependencies>
 ```
 
-
 ## Examples
-[Examples repository](https://github.com/selevinia/spring-data-tarantool-examples) contains example projects that explain specific features in more detail.See more examples in the module tests.
+[Examples repository](https://github.com/selevinia/spring-data-tarantool-examples) contains example projects that explain specific features in more detail.
+See more examples in the module tests.
 
 ## License
 
