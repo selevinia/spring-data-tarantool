@@ -14,6 +14,9 @@ import org.springframework.data.tarantool.core.mapping.BasicMapId;
 import org.springframework.data.tarantool.core.mapping.MapId;
 import org.springframework.data.tarantool.core.mapping.MapIdFactory;
 import org.springframework.data.tarantool.core.mapping.TarantoolMappingContext;
+import org.springframework.data.tarantool.core.mapping.event.AfterDeleteEvent;
+import org.springframework.data.tarantool.core.mapping.event.TarantoolMappingEvent;
+import org.springframework.data.tarantool.integration.core.util.CaptureEventListener;
 import org.springframework.data.tarantool.integration.domain.*;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -35,15 +38,17 @@ import static org.springframework.data.tarantool.integration.core.util.TestData.
  */
 @TestInstance(Lifecycle.PER_CLASS)
 public abstract class AbstractReactiveTarantoolTemplateTest {
-
+    private CaptureEventListener eventListener;
     private ReactiveTarantoolTemplate reactiveTarantoolTemplate;
 
     public abstract TarantoolClientOptions getOptions();
 
     @BeforeAll
     void setUp() {
+        eventListener = eventListener();
         TarantoolMappingContext mappingContext = mappingContext();
         reactiveTarantoolTemplate = new ReactiveTarantoolTemplate(clientFactory(getOptions()).createClient(), converter(mappingContext), exceptionTranslator());
+        reactiveTarantoolTemplate.setApplicationEventPublisher(event -> eventListener.onApplicationEvent((TarantoolMappingEvent<?>) event));
     }
 
     @BeforeEach
@@ -57,6 +62,8 @@ public abstract class AbstractReactiveTarantoolTemplateTest {
                 .then()
                 .as(StepVerifier::create)
                 .verifyComplete();
+
+        eventListener.clear();
     }
 
     @Test
@@ -80,6 +87,11 @@ public abstract class AbstractReactiveTarantoolTemplateTest {
         reactiveTarantoolTemplate.selectById(article.getId(), Article.class).as(StepVerifier::create)
                 .expectNext(article)
                 .verifyComplete();
+
+        assertThat(eventListener.getBeforeSave()).hasSize(1);
+        assertThat(eventListener.getAfterSave()).hasSize(1);
+        assertThat(eventListener.getAfterLoad()).extracting(TarantoolMappingEvent::getSpaceName).containsOnly("articles");
+        assertThat(eventListener.getAfterConvert()).extracting(TarantoolMappingEvent::getSource).containsOnly(article);
     }
 
     @Test
@@ -159,6 +171,9 @@ public abstract class AbstractReactiveTarantoolTemplateTest {
         reactiveTarantoolTemplate.replace(article, Article.class).as(StepVerifier::create)
                 .expectNext(article)
                 .verifyComplete();
+
+        assertThat(eventListener.getBeforeSave()).hasSize(2);
+        assertThat(eventListener.getAfterSave()).hasSize(2);
     }
 
     @Test
@@ -172,6 +187,11 @@ public abstract class AbstractReactiveTarantoolTemplateTest {
         reactiveTarantoolTemplate.selectById(article.getId(), Article.class).as(StepVerifier::create)
                 .expectNext(article)
                 .verifyComplete();
+
+        assertThat(eventListener.getBeforeSave()).hasSize(1);
+        assertThat(eventListener.getAfterSave()).hasSize(1);
+        assertThat(eventListener.getAfterLoad()).hasSize(1);
+        assertThat(eventListener.getAfterConvert()).hasSize(1);
     }
 
     @Test
@@ -186,6 +206,8 @@ public abstract class AbstractReactiveTarantoolTemplateTest {
                 .expectNext(article)
                 .verifyComplete();
 
+        eventListener.clear();
+
         Article partialArticle = Article.builder()
                 .tags(List.of(new Tag("test")))
                 .likes(article.getLikes() + 1)
@@ -195,6 +217,9 @@ public abstract class AbstractReactiveTarantoolTemplateTest {
         reactiveTarantoolTemplate.update(Conditions.indexEquals(TarantoolIndexQuery.PRIMARY, List.of(article.getId())), partialArticle, Article.class).as(StepVerifier::create)
                 .assertNext(articleAssertConsumer(article))
                 .verifyComplete();
+
+        assertThat(eventListener.getBeforeSave()).hasSize(1);
+        assertThat(eventListener.getAfterSave()).hasSize(1);
     }
 
     @Test
@@ -341,6 +366,9 @@ public abstract class AbstractReactiveTarantoolTemplateTest {
                 .verifyComplete();
 
         reactiveTarantoolTemplate.count(Article.class).as(StepVerifier::create).expectNext(0L).verifyComplete();
+
+        assertThat(eventListener.getAfterDelete()).hasSize(2);
+        assertThat(eventListener.getAfterDelete().get(0)).extracting(AfterDeleteEvent::getType).isEqualTo(Article.class);
     }
 
     @Test

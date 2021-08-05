@@ -9,6 +9,7 @@ import org.springframework.data.tarantool.integration.domain.DistributedUser;
 import org.springframework.data.tarantool.integration.domain.TranslatedArticle;
 import org.springframework.data.tarantool.integration.domain.TranslatedArticleKey;
 import org.springframework.data.tarantool.integration.domain.User;
+import org.springframework.data.tarantool.integration.repository.util.CaptureEventListener;
 import org.springframework.data.tarantool.repository.Query;
 import org.springframework.data.tarantool.repository.ReactiveTarantoolRepository;
 import reactor.core.publisher.Flux;
@@ -39,9 +40,13 @@ public abstract class AbstractReactiveTarantoolRepositoryTest {
     @Autowired
     protected ReactiveTarantoolOperations operations;
 
+    @Autowired
+    protected CaptureEventListener eventListener;
+
     @BeforeEach
     void cleanup() {
         operations.delete(Conditions.any(), User.class).then().as(StepVerifier::create).verifyComplete();
+        eventListener.clear();
     }
 
     @Test
@@ -63,6 +68,9 @@ public abstract class AbstractReactiveTarantoolRepositoryTest {
                     assertThat(actual.getVersion()).isEqualTo(0L);
                 })
                 .verifyComplete();
+
+        assertThat(eventListener.getBeforeSave()).hasSize(1);
+        assertThat(eventListener.getAfterSave()).hasSize(1);
     }
 
     @Test

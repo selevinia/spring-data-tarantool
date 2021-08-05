@@ -9,6 +9,7 @@ import org.springframework.data.tarantool.config.client.TarantoolClientOptions;
 import org.springframework.data.tarantool.integration.config.CustomCrudOperationsTarantoolClientOptions;
 import org.springframework.data.tarantool.integration.core.convert.LocaleToStringConverter;
 import org.springframework.data.tarantool.integration.core.convert.StringToLocaleConverter;
+import org.springframework.data.tarantool.integration.repository.util.CaptureEventListener;
 import org.springframework.data.tarantool.repository.config.EnableReactiveTarantoolRepositories;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
@@ -40,6 +41,11 @@ public class CustomCrudReactiveTarantoolRepositoryTest extends AbstractReactiveT
         @Override
         protected List<?> customConverters() {
             return List.of(new LocaleToStringConverter(), new StringToLocaleConverter());
+        }
+
+        @Bean
+        public CaptureEventListener eventListener() {
+            return new CaptureEventListener();
         }
     }
 

@@ -22,9 +22,7 @@ import org.springframework.data.mapping.callback.ReactiveEntityCallbacks;
 import org.springframework.data.tarantool.core.convert.MappingTarantoolConverter;
 import org.springframework.data.tarantool.core.convert.TarantoolConverter;
 import org.springframework.data.tarantool.core.mapping.TarantoolPersistentEntity;
-import org.springframework.data.tarantool.core.mapping.event.ReactiveBeforeConvertCallback;
-import org.springframework.data.tarantool.core.mapping.event.ReactiveBeforeSaveCallback;
-import org.springframework.data.tarantool.core.mapping.event.TarantoolMappingEvent;
+import org.springframework.data.tarantool.core.mapping.event.*;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import reactor.core.publisher.Flux;
@@ -154,7 +152,7 @@ public class ReactiveTarantoolTemplate extends ExceptionTranslatorSupport implem
 
         return execute(entityClass, spaceOps -> spaceOps.select(query))
                 .filter(tuples -> tuples.size() > 0)
-                .map(tuples -> tupleToEntity(tuples.get(0), entityClass));
+                .map(tuples -> mapToEntity(tuples.get(0), entityClass));
     }
 
     @Override
@@ -165,7 +163,14 @@ public class ReactiveTarantoolTemplate extends ExceptionTranslatorSupport implem
         return execute(entityClass, spaceOps -> spaceOps.select(query))
                 .publishOn(TARANTOOL_PARALLEL_SCHEDULER)
                 .flatMapIterable(tuples -> tuples)
-                .map(tuple -> tupleToEntity(tuple, entityClass));
+                .map(tuple -> mapToEntity(tuple, entityClass));
+    }
+
+    private <T> T mapToEntity(TarantoolTuple tuple, Class<T> entityClass) {
+        maybeEmitEvent(new AfterLoadEvent<>(tuple, entityClass, spaceName(entityClass)));
+        T entity = tupleToEntity(tuple, entityClass);
+        maybeEmitEvent(new AfterConvertEvent<>(tuple, entity, spaceName(entityClass)));
+        return entity;
     }
 
     @Override
@@ -199,11 +204,15 @@ public class ReactiveTarantoolTemplate extends ExceptionTranslatorSupport implem
                 .flatMap(ent -> {
                     TarantoolTuple tuple = entityToTuple(ent, messagePackMapper, spaceMetadata);
                     return maybeCallBeforeSave(ent, tuple, spaceName)
-                            .map(e -> tuple);
+                            .map(e -> {
+                                maybeEmitEvent(new BeforeSaveEvent<>(e, spaceName));
+                                return tuple;
+                            });
                 })
                 .flatMap(tuple -> execute(spaceName, spaceOps -> spaceOps.insert(tuple)))
                 .filter(tuples -> tuples.size() > 0)
-                .map(tuples -> tupleToEntity(tuples.get(0), entityClass));
+                .map(tuples -> tupleToEntity(tuples.get(0), entityClass))
+                .doOnNext(it -> maybeEmitEvent(new AfterSaveEvent<>(it, spaceName)));
     }
 
     @Override
@@ -218,11 +227,15 @@ public class ReactiveTarantoolTemplate extends ExceptionTranslatorSupport implem
                 .flatMap(ent -> {
                     TarantoolTuple tuple = entityToTuple(ent, messagePackMapper, spaceMetadata);
                     return maybeCallBeforeSave(ent, tuple, spaceName)
-                            .map(e -> tuple);
+                            .map(e -> {
+                                maybeEmitEvent(new BeforeSaveEvent<>(e, spaceName));
+                                return tuple;
+                            });
                 })
                 .flatMap(tuple -> execute(spaceName, spaceOps -> spaceOps.replace(tuple)))
                 .filter(tuples -> tuples.size() > 0)
-                .map(tuples -> tupleToEntity(tuples.get(0), entityClass));
+                .map(tuples -> tupleToEntity(tuples.get(0), entityClass))
+                .doOnNext(it -> maybeEmitEvent(new AfterSaveEvent<>(it, spaceName)));
     }
 
     @Override
@@ -238,7 +251,10 @@ public class ReactiveTarantoolTemplate extends ExceptionTranslatorSupport implem
                 .flatMap(ent -> {
                     TarantoolTuple tuple = entityToTuple(ent, messagePackMapper, spaceMetadata);
                     return maybeCallBeforeSave(ent, tuple, spaceName)
-                            .map(e -> tuple);
+                            .map(e -> {
+                                maybeEmitEvent(new BeforeSaveEvent<>(e, spaceName));
+                                return tuple;
+                            });
                 })
                 .map(tupleMethodsHelper::prepareUpdateOperations)
                 .flatMapMany(tupleOperations ->
@@ -252,6 +268,7 @@ public class ReactiveTarantoolTemplate extends ExceptionTranslatorSupport implem
                                 .filter(tuples -> tuples.size() > 0)
                                 .map(tuples -> tupleToEntity(tuples.get(0), entityClass))
                                 .sequential()
+                                .doOnNext(it -> maybeEmitEvent(new AfterSaveEvent<>(it, spaceName)))
                 );
     }
 
@@ -263,7 +280,10 @@ public class ReactiveTarantoolTemplate extends ExceptionTranslatorSupport implem
         Conditions query = tupleMethodsHelper.primaryIndexQuery(entity);
         return execute(entityClass, spaceOps -> spaceOps.delete(query))
                 .filter(tuples -> tuples.size() > 0)
-                .map(tuples -> tupleToEntity(tuples.get(0), entityClass));
+                .map(tuples -> {
+                    maybeEmitEvent(new AfterDeleteEvent<>(tuples.get(0), entityClass, spaceName(entityClass)));
+                    return tupleToEntity(tuples.get(0), entityClass);
+                });
     }
 
     @Override
@@ -280,7 +300,10 @@ public class ReactiveTarantoolTemplate extends ExceptionTranslatorSupport implem
                 .map(tuple -> tupleMethodsHelper.primaryIndexQuery(tuple, entityClass))
                 .flatMap(conditions -> execute(spaceName, spaceOps -> spaceOps.delete(conditions)))
                 .filter(tuples -> tuples.size() > 0)
-                .map(tuples -> tupleToEntity(tuples.get(0), entityClass))
+                .map(tuples -> {
+                    maybeEmitEvent(new AfterDeleteEvent<>(tuples.get(0), entityClass, spaceName));
+                    return tupleToEntity(tuples.get(0), entityClass);
+                })
                 .sequential();
     }
 
@@ -292,7 +315,10 @@ public class ReactiveTarantoolTemplate extends ExceptionTranslatorSupport implem
         Conditions query = tupleMethodsHelper.primaryIndexQueryById(id, entityClass);
         return execute(entityClass, spaceOps -> spaceOps.delete(query))
                 .filter(tuples -> tuples.size() > 0)
-                .map(tuples -> tupleToEntity(tuples.get(0), entityClass));
+                .map(tuples -> {
+                    maybeEmitEvent(new AfterDeleteEvent<>(tuples.get(0), entityClass, spaceName(entityClass)));
+                    return tupleToEntity(tuples.get(0), entityClass);
+                });
     }
 
     @Override
