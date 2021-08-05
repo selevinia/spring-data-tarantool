@@ -1,6 +1,6 @@
 group = "io.github.selevinia"
 version = "0.2.0"
-description = "Reactive Spring Data module for Tarantool Database"
+description = "Spring Data module for Tarantool Database"
 
 plugins {
     `java-library`
@@ -73,7 +73,7 @@ publishing {
             from(components["java"])
             pom {
                 name.set("Spring Data Tarantool")
-                description.set("Reactive Spring Data module for Tarantool Database")
+                description.set("Spring Data module for Tarantool Database")
                 url.set("https://github.com/selevinia/spring-data-tarantool")
 
                 scm {

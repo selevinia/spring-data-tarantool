@@ -5,13 +5,13 @@ use new data access technologies such as non-relational databases,
 map-reduce frameworks, and cloud based data services.
 
 The Spring Data Tarantool project aims to provide a familiar and consistent Spring-based programming
-model to work with Tarantool spaces from Java Spring project using reactive types, such as Mono and Flux
+model to work with Tarantool spaces from Java Spring project with or without reactive types, such as Mono and Flux
 from [Project Reactor](https://projectreactor.io/) like Spring WebFlux do.
 
 ## Features
 * Build repositories based on common Spring Data interfaces
-* Support for reactive data operations
-* JavaConfig support for all Cluster and Single Node Tarantool installations
+* Support for synchronous and reactive data operations
+* JavaConfig support for all Cartridge and Single Node Tarantool installations
 * Exception Translation to the familiar Spring DataAccessException hierarchy
 * Automatic implementation of Repository interfaces including support for custom query methods
 * Based on the 0.4.3 Tarantool cartridge-driver for Java
@@ -125,7 +125,49 @@ class ApplicationConfig extends AbstractReactiveTarantoolConfiguration {
 }
 ```
 
-See more examples in the module tests.
+## Spring Boot
+
+|`spring-data-tarantool` Version | Spring Boot Version
+| :----------- | :----: |
+|0.x.x | 2.5.x
+
+To use Spring Data Tarantool with Spring Boot following starters may be used
+* For synchronous data operations
+```maven
+<dependencies>
+	<dependency>
+		<groupId>io.github.selevinia</groupId>
+		<artifactId>selevinia-spring-boot-starter-data-tarantool</artifactId>
+		<version>${version}</version>
+	</dependency>
+</dependencies>
+```
+
+* For reactive data operations
+```maven
+<dependencies>
+	<dependency>
+		<groupId>io.github.selevinia</groupId>
+		<artifactId>selevinia-spring-boot-starter-data-tarantool-reactive</artifactId>
+		<version>${version}</version>
+	</dependency>
+</dependencies>
+```
+
+* For corresponding actuator
+```maven
+<dependencies>
+	<dependency>
+		<groupId>io.github.selevinia</groupId>
+		<artifactId>selevinia-spring-boot-starter-actuator-tarantool</artifactId>
+		<version>${version}</version>
+	</dependency>
+</dependencies>
+```
+
+
+## Examples
+[Examples repository](https://github.com/selevinia/spring-data-tarantool-examples) contains example projects that explain specific features in more detail.See more examples in the module tests.
 
 ## License
 
