@@ -6,6 +6,7 @@ import org.springframework.data.mapping.IdentifierAccessor;
 import org.springframework.data.mapping.PersistentPropertyAccessor;
 import org.springframework.data.mapping.TargetAwareIdentifierAccessor;
 import org.springframework.data.mapping.model.BasicPersistentEntity;
+import org.springframework.data.support.IsNewStrategy;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -60,6 +61,11 @@ public class BasicTarantoolPersistentEntity<T> extends BasicPersistentEntity<T, 
             return super.getIdentifierAccessor(bean);
         }
         return new MapIdIdentifierAccessor(this, bean);
+    }
+
+    @Override
+    protected IsNewStrategy getFallbackIsNewStrategy() {
+        return TarantoolPersistentEntityIsNewStrategy.of(this);
     }
 
     private static class MapIdIdentifierAccessor extends TargetAwareIdentifierAccessor {
