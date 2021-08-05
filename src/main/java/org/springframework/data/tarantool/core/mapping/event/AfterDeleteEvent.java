@@ -14,7 +14,7 @@ public class AfterDeleteEvent<T> extends TarantoolMappingEvent<TarantoolTuple> {
     private final Class<T> type;
 
     /**
-     * Creates a new {@link AfterSaveEvent}.
+     * Creates a new {@link AfterDeleteEvent}.
      *
      * @param source    must not be {@literal null}.
      * @param type      must not be {@literal null}.
@@ -28,7 +28,7 @@ public class AfterDeleteEvent<T> extends TarantoolMappingEvent<TarantoolTuple> {
     }
 
     /**
-     * Returns the type for which the {@link AfterLoadEvent} shall be invoked for.
+     * Returns the type for which the {@link AfterDeleteEvent} shall be invoked for.
      *
      * @return type
      */
