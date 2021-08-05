@@ -15,6 +15,8 @@ import org.msgpack.value.Value;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.data.mapping.callback.EntityCallbacks;
 import org.springframework.data.tarantool.TarantoolServerConnectionException;
 import org.springframework.data.tarantool.core.convert.MappingTarantoolConverter;
@@ -22,6 +24,7 @@ import org.springframework.data.tarantool.core.convert.TarantoolConverter;
 import org.springframework.data.tarantool.core.mapping.TarantoolPersistentEntity;
 import org.springframework.data.tarantool.core.mapping.event.BeforeConvertCallback;
 import org.springframework.data.tarantool.core.mapping.event.BeforeSaveCallback;
+import org.springframework.data.tarantool.core.mapping.event.TarantoolMappingEvent;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
@@ -39,13 +42,15 @@ import java.util.stream.StreamSupport;
  *
  * @author Alexander Rublev
  */
-public class TarantoolTemplate extends ExceptionTranslatorSupport implements ApplicationContextAware, TarantoolOperations {
+public class TarantoolTemplate extends ExceptionTranslatorSupport implements ApplicationContextAware, ApplicationEventPublisherAware, TarantoolOperations {
     private final TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient;
     private final TarantoolConverter tarantoolConverter;
     private final MessagePackMapper messagePackMapper;
     private final TarantoolTupleMethodsHelper tupleMethodsHelper;
     private @Nullable
     EntityCallbacks entityCallbacks;
+    private @Nullable
+    ApplicationEventPublisher eventPublisher;
 
     public TarantoolTemplate(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient) {
         this(tarantoolClient, MappingTarantoolConverter.newConverter(), new DefaultTarantoolExceptionTranslator());
@@ -66,6 +71,11 @@ public class TarantoolTemplate extends ExceptionTranslatorSupport implements App
         if (entityCallbacks == null) {
             setEntityCallbacks(EntityCallbacks.create(applicationContext));
         }
+    }
+
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        this.eventPublisher = applicationEventPublisher;
     }
 
     /**
@@ -91,6 +101,12 @@ public class TarantoolTemplate extends ExceptionTranslatorSupport implements App
         }
 
         return object;
+    }
+
+    protected <E extends TarantoolMappingEvent<T>, T> void maybeEmitEvent(E event) {
+        if (this.eventPublisher != null) {
+            this.eventPublisher.publishEvent(event);
+        }
     }
 
     @Override

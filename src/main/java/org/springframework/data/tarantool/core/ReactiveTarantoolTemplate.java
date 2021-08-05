@@ -15,6 +15,8 @@ import org.reactivestreams.Publisher;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.data.mapping.callback.EntityCallbacks;
 import org.springframework.data.mapping.callback.ReactiveEntityCallbacks;
 import org.springframework.data.tarantool.core.convert.MappingTarantoolConverter;
@@ -22,6 +24,7 @@ import org.springframework.data.tarantool.core.convert.TarantoolConverter;
 import org.springframework.data.tarantool.core.mapping.TarantoolPersistentEntity;
 import org.springframework.data.tarantool.core.mapping.event.ReactiveBeforeConvertCallback;
 import org.springframework.data.tarantool.core.mapping.event.ReactiveBeforeSaveCallback;
+import org.springframework.data.tarantool.core.mapping.event.TarantoolMappingEvent;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import reactor.core.publisher.Flux;
@@ -40,7 +43,7 @@ import java.util.function.Supplier;
  * @author Tatiana Blinova
  * @author Alexander Rublev
  */
-public class ReactiveTarantoolTemplate extends ExceptionTranslatorSupport implements ApplicationContextAware, ReactiveTarantoolOperations {
+public class ReactiveTarantoolTemplate extends ExceptionTranslatorSupport implements ApplicationContextAware, ApplicationEventPublisherAware, ReactiveTarantoolOperations {
 
     public static final int TARANTOOL_DEFAULT_POOL_SIZE = Optional.ofNullable(System.getProperty("tarantool.schedulers.defaultPoolSize"))
             .map(Integer::parseInt)
@@ -53,6 +56,8 @@ public class ReactiveTarantoolTemplate extends ExceptionTranslatorSupport implem
     private final TarantoolTupleMethodsHelper tupleMethodsHelper;
     private @Nullable
     ReactiveEntityCallbacks entityCallbacks;
+    private @Nullable
+    ApplicationEventPublisher eventPublisher;
 
     public ReactiveTarantoolTemplate(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient) {
         this(tarantoolClient, MappingTarantoolConverter.newConverter(), new DefaultTarantoolExceptionTranslator());
@@ -73,6 +78,11 @@ public class ReactiveTarantoolTemplate extends ExceptionTranslatorSupport implem
         if (entityCallbacks == null) {
             setEntityCallbacks(ReactiveEntityCallbacks.create(applicationContext));
         }
+    }
+
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        this.eventPublisher = applicationEventPublisher;
     }
 
     /**
@@ -98,6 +108,12 @@ public class ReactiveTarantoolTemplate extends ExceptionTranslatorSupport implem
         }
 
         return Mono.just(object);
+    }
+
+    protected <E extends TarantoolMappingEvent<T>, T> void maybeEmitEvent(E event) {
+        if (this.eventPublisher != null) {
+            this.eventPublisher.publishEvent(event);
+        }
     }
 
     @Override
