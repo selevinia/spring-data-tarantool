@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * Tarantool-specific extension of the {@link CrudRepository} interface that allows the specification of a type for the
- * identity of the {@link Space @Space} (or {@link Persistable @Persistable}) type.
+ * identity of the {@link Space @Space} (or {@link Persistable}) type.
  * Repositories based on {@link TarantoolRepository} can define either a single primary key, use a primary key class or
  * a compound primary key without a primary key class. Types using a compound primary key without a primary key class
  * must use {@link MapId} to declare their key value.
