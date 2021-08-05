@@ -167,9 +167,10 @@ public class ReactiveTarantoolTemplate extends ExceptionTranslatorSupport implem
     }
 
     private <T> T mapToEntity(TarantoolTuple tuple, Class<T> entityClass) {
-        maybeEmitEvent(new AfterLoadEvent<>(tuple, entityClass, spaceName(entityClass)));
+        String spaceName = spaceName(entityClass);
+        maybeEmitEvent(new AfterLoadEvent<>(tuple, entityClass, spaceName));
         T entity = tupleToEntity(tuple, entityClass);
-        maybeEmitEvent(new AfterConvertEvent<>(tuple, entity, spaceName(entityClass)));
+        maybeEmitEvent(new AfterConvertEvent<>(tuple, entity, spaceName));
         return entity;
     }
 
