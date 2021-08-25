@@ -40,8 +40,8 @@ public class TarantoolCache extends AbstractValueAdaptingCache {
     }
 
     @Override
-    public Object getNativeCache() {
-        return null;
+    public TarantoolCacheWriter getNativeCache() {
+        return cacheWriter;
     }
 
     @Override
