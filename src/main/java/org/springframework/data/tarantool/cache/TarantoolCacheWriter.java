@@ -1,5 +1,9 @@
 package org.springframework.data.tarantool.cache;
 
+import io.tarantool.driver.api.TarantoolClient;
+import io.tarantool.driver.api.TarantoolResult;
+import io.tarantool.driver.api.tuple.TarantoolTuple;
+
 /**
  * {@link TarantoolCacheWriter} provides low level access to Tarantool space operations used for
  * caching.
@@ -9,4 +13,6 @@ package org.springframework.data.tarantool.cache;
  * @author Tatiana Blinova
  */
 public interface TarantoolCacheWriter {
+
+    TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> getTarantoolClient();
 }

@@ -11,4 +11,9 @@ public class DefaultTarantoolCacheWriter implements TarantoolCacheWriter {
     public DefaultTarantoolCacheWriter(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient) {
         this.tarantoolClient = tarantoolClient;
     }
+
+    @Override
+    public TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> getTarantoolClient() {
+        return tarantoolClient;
+    }
 }
