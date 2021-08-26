@@ -1,6 +1,8 @@
 package org.springframework.data.tarantool.cache;
 
 import org.springframework.cache.support.AbstractValueAdaptingCache;
+import org.springframework.cache.support.SimpleValueWrapper;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 import java.util.concurrent.Callable;
@@ -30,11 +32,6 @@ public class TarantoolCache extends AbstractValueAdaptingCache {
     }
 
     @Override
-    protected Object lookup(Object key) {
-        return null;
-    }
-
-    @Override
     public String getName() {
         return name;
     }
@@ -45,37 +42,47 @@ public class TarantoolCache extends AbstractValueAdaptingCache {
     }
 
     @Override
+    protected Object lookup(Object key) {
+        return cacheWriter.get(name, key);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
     public <T> T get(Object key, Callable<T> valueLoader) {
-        return null;
+        ValueWrapper result = get(key);
+
+        if (result != null) {
+            return (T) result.get();
+        }
+
+        T value;
+        try {
+            value = valueLoader.call();
+        } catch (Exception e) {
+            throw new ValueRetrievalException(key, valueLoader, e);
+        }
+        put(key, value);
+        return value;
     }
 
     @Override
-    public void put(Object key, Object value) {
-
+    public void put(Object key, @Nullable Object value) {
+        cacheWriter.put(name, key, toStoreValue(value), cacheConfig.getTtl());
     }
 
     @Override
-    public ValueWrapper putIfAbsent(Object key, Object value) {
-        return super.putIfAbsent(key, value);
+    public ValueWrapper putIfAbsent(Object key, @Nullable Object value) {
+        Object result = cacheWriter.putIfAbsent(name, key, toStoreValue(value), cacheConfig.getTtl());
+        return new SimpleValueWrapper(fromStoreValue(result));
     }
 
     @Override
     public void evict(Object key) {
-
-    }
-
-    @Override
-    public boolean evictIfPresent(Object key) {
-        return super.evictIfPresent(key);
+        cacheWriter.remove(name, key);
     }
 
     @Override
     public void clear() {
-
-    }
-
-    @Override
-    public boolean invalidate() {
-        return super.invalidate();
+        cacheWriter.remove(name);
     }
 }
