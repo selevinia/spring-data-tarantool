@@ -5,6 +5,7 @@ import io.tarantool.driver.api.TarantoolResult;
 import io.tarantool.driver.api.tuple.TarantoolTuple;
 import org.springframework.cache.support.AbstractValueAdaptingCache;
 import org.springframework.cache.support.SimpleValueWrapper;
+import org.springframework.data.tarantool.core.convert.TarantoolConverter;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
@@ -23,7 +24,8 @@ public class TarantoolCache extends AbstractValueAdaptingCache {
     private final TarantoolNativeCache nativeCache;
 
     public TarantoolCache(String cacheName, TarantoolCacheConfiguration cacheConfig,
-                          TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient) {
+                          TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
+                          TarantoolConverter tarantoolConverter) {
         super(cacheConfig.getAllowCacheNullValues());
 
         Assert.notNull(cacheName, "Cache name must not be null");
@@ -32,7 +34,7 @@ public class TarantoolCache extends AbstractValueAdaptingCache {
 
         this.cacheName = cacheName;
         this.cacheConfig = cacheConfig;
-        this.nativeCache = new DefaultTarantoolNativeCache(cacheName, tarantoolClient);
+        this.nativeCache = new DefaultTarantoolNativeCache(cacheName, tarantoolClient, tarantoolConverter);
     }
 
     @Override
