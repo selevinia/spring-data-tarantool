@@ -1,6 +1,8 @@
 package org.springframework.data.tarantool;
 
-public class TarantoolCacheAccessException extends RuntimeException {
+import org.springframework.dao.DataAccessException;
+
+public class TarantoolCacheAccessException extends DataAccessException {
 
     public TarantoolCacheAccessException(String msg) {
         super(msg);

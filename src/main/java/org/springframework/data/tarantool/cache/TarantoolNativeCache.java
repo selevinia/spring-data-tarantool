@@ -15,22 +15,22 @@ import java.time.Duration;
 public interface TarantoolNativeCache {
 
     /**
-     * Write the given key/value pair to Tarantool and set the expiration time if defined.
-     *
-     * @param key   The key for the cache entry. Must not be {@literal null}.
-     * @param value The value stored for the key. Must not be {@literal null}.
-     * @param ttl   Optional expiration time. Can be {@literal null}.
-     */
-    void put(Object key, Object value, @Nullable Duration ttl);
-
-    /**
      * Get value from Tarantool stored for the given key.
      *
      * @param key must not be {@literal null}.
      * @return {@literal null} if key does not exist.
      */
     @Nullable
-    Object get(Object key);
+    byte[] get(byte[] key);
+
+    /**
+     * Write the given key/value pair to Tarantool and set the expiration time if defined.
+     *
+     * @param key   The key for the cache entry. Must not be {@literal null}.
+     * @param value The value stored for the key. Must not be {@literal null}.
+     * @param ttl   Optional expiration time. Can be {@literal null}.
+     */
+    void put(byte[] key, byte[] value, @Nullable Duration ttl);
 
     /**
      * Write the given value to Tarantool if the key does not already exist.
@@ -41,14 +41,14 @@ public interface TarantoolNativeCache {
      * @return {@literal null} if the value has been written, the value stored for the key if it already exists.
      */
     @Nullable
-    Object putIfAbsent(Object key, Object value, @Nullable Duration ttl);
+    byte[] putIfAbsent(byte[] key, byte[] value, @Nullable Duration ttl);
 
     /**
      * Remove the given key from Tarantool.
      *
      * @param key The key for the cache entry. Must not be {@literal null}.
      */
-    void remove(Object key);
+    void remove(byte[] key);
 
     /**
      * Remove all keys.

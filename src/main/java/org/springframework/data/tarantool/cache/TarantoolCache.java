@@ -4,10 +4,12 @@ import io.tarantool.driver.api.TarantoolClient;
 import io.tarantool.driver.api.TarantoolResult;
 import io.tarantool.driver.api.tuple.TarantoolTuple;
 import org.springframework.cache.support.AbstractValueAdaptingCache;
+import org.springframework.cache.support.NullValue;
 import org.springframework.cache.support.SimpleValueWrapper;
 import org.springframework.data.tarantool.core.convert.TarantoolConverter;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.util.ObjectUtils;
 
 import java.util.concurrent.Callable;
 
@@ -22,6 +24,7 @@ public class TarantoolCache extends AbstractValueAdaptingCache {
     private final String cacheName;
     private final TarantoolCacheConfiguration cacheConfig;
     private final TarantoolNativeCache nativeCache;
+    private final byte[] binaryNullValue;
 
     public TarantoolCache(String cacheName, TarantoolCacheConfiguration cacheConfig,
                           TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
@@ -35,6 +38,7 @@ public class TarantoolCache extends AbstractValueAdaptingCache {
         this.cacheName = cacheName;
         this.cacheConfig = cacheConfig;
         this.nativeCache = new DefaultTarantoolNativeCache(cacheName, tarantoolClient, tarantoolConverter);
+        this.binaryNullValue = cacheConfig.getSerializer().convert(NullValue.INSTANCE);
     }
 
     @Override
@@ -49,7 +53,11 @@ public class TarantoolCache extends AbstractValueAdaptingCache {
 
     @Override
     protected Object lookup(Object key) {
-        return nativeCache.get(key);
+        byte[] value = nativeCache.get(serializeCacheKey(key));
+        if (value == null) {
+            return null;
+        }
+        return deserializeCacheValue(value);
     }
 
     @Override
@@ -73,22 +81,43 @@ public class TarantoolCache extends AbstractValueAdaptingCache {
 
     @Override
     public void put(Object key, @Nullable Object value) {
-        nativeCache.put(key, toStoreValue(value), cacheConfig.getTtl());
+        nativeCache.put(serializeCacheKey(key), serializeCacheValue(toStoreValue(value)), cacheConfig.getTtl());
     }
 
     @Override
     public ValueWrapper putIfAbsent(Object key, @Nullable Object value) {
-        Object result = nativeCache.putIfAbsent(key, toStoreValue(value), cacheConfig.getTtl());
-        return new SimpleValueWrapper(fromStoreValue(result));
+        byte[] result = nativeCache.putIfAbsent(serializeCacheKey(key), serializeCacheValue(toStoreValue(value)), cacheConfig.getTtl());
+        if (result == null) {
+            return null;
+        }
+        return new SimpleValueWrapper(fromStoreValue(deserializeCacheValue(result)));
     }
 
     @Override
     public void evict(Object key) {
-        nativeCache.remove(key);
+        nativeCache.remove(serializeCacheKey(key));
     }
 
     @Override
     public void clear() {
-        nativeCache.remove(cacheName);
+        nativeCache.remove();
+    }
+
+    private byte[] serializeCacheKey(Object cacheKey) {
+        return cacheConfig.getSerializer().convert(cacheKey);
+    }
+
+    private byte[] serializeCacheValue(Object value) {
+        if (isAllowNullValues() && value instanceof NullValue) {
+            return binaryNullValue;
+        }
+        return cacheConfig.getSerializer().convert(value);
+    }
+
+    private Object deserializeCacheValue(byte[] value) {
+        if (isAllowNullValues() && ObjectUtils.nullSafeEquals(value, binaryNullValue)) {
+            return NullValue.INSTANCE;
+        }
+        return cacheConfig.getDeserializer().convert(value);
     }
 }
