@@ -18,51 +18,56 @@ import java.util.stream.Collectors;
  *
  * @author Tatiana Blinova
  * @see TarantoolCacheConfiguration
- * @see TarantoolCacheWriter
+ * @see TarantoolNativeCache
  */
 public class TarantoolCacheManager extends AbstractCacheManager {
 
-    private final TarantoolCacheWriter cacheWriter;
+    private final TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient;
     private final TarantoolCacheConfiguration defaultCacheConfig;
     private final Map<String, TarantoolCacheConfiguration> initialCacheConfiguration;
     private final boolean allowInFlightCacheCreation;
 
-    public TarantoolCacheManager(TarantoolCacheWriter cacheWriter, TarantoolCacheConfiguration defaultCacheConfig,
-                                 boolean allowInFlightCacheCreation) {
-        Assert.notNull(cacheWriter, "CacheWriter must not be null");
+    public TarantoolCacheManager(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
+                                 TarantoolCacheConfiguration defaultCacheConfig, boolean allowInFlightCacheCreation) {
+        Assert.notNull(tarantoolClient, "TarantoolClient must not be null");
         Assert.notNull(defaultCacheConfig, "DefaultCacheConfiguration must not be null");
 
-        this.cacheWriter = cacheWriter;
+        this.tarantoolClient = tarantoolClient;
         this.defaultCacheConfig = defaultCacheConfig;
         this.initialCacheConfiguration = new LinkedHashMap<>();
         this.allowInFlightCacheCreation = allowInFlightCacheCreation;
     }
 
-    public TarantoolCacheManager(TarantoolCacheWriter cacheWriter, TarantoolCacheConfiguration defaultCacheConfiguration) {
-        this(cacheWriter, defaultCacheConfiguration, true);
+    public TarantoolCacheManager(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
+                                 TarantoolCacheConfiguration defaultCacheConfiguration) {
+        this(tarantoolClient, defaultCacheConfiguration, true);
     }
 
-    public TarantoolCacheManager(TarantoolCacheWriter cacheWriter, TarantoolCacheConfiguration defaultCacheConfiguration, String... initialCacheNames) {
-        this(cacheWriter, defaultCacheConfiguration, true, initialCacheNames);
+    public TarantoolCacheManager(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
+                                 TarantoolCacheConfiguration defaultCacheConfiguration, String... initialCacheNames) {
+        this(tarantoolClient, defaultCacheConfiguration, true, initialCacheNames);
     }
 
-    public TarantoolCacheManager(TarantoolCacheWriter cacheWriter, TarantoolCacheConfiguration defaultCacheConfiguration,
+    public TarantoolCacheManager(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
+                                 TarantoolCacheConfiguration defaultCacheConfiguration,
                                  boolean allowInFlightCacheCreation, String... initialCacheNames) {
-        this(cacheWriter, defaultCacheConfiguration, allowInFlightCacheCreation);
+        this(tarantoolClient, defaultCacheConfiguration, allowInFlightCacheCreation);
 
         for (String cacheName : initialCacheNames) {
             this.initialCacheConfiguration.put(cacheName, defaultCacheConfiguration);
         }
     }
 
-    public TarantoolCacheManager(TarantoolCacheWriter cacheWriter, TarantoolCacheConfiguration defaultCacheConfiguration,
+    public TarantoolCacheManager(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
+                                 TarantoolCacheConfiguration defaultCacheConfiguration,
                                  Map<String, TarantoolCacheConfiguration> initialCacheConfigurations) {
-        this(cacheWriter, defaultCacheConfiguration, initialCacheConfigurations, true);
+        this(tarantoolClient, defaultCacheConfiguration, initialCacheConfigurations, true);
     }
 
-    public TarantoolCacheManager(TarantoolCacheWriter cacheWriter, TarantoolCacheConfiguration defaultCacheConfiguration,
+    public TarantoolCacheManager(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
+                                 TarantoolCacheConfiguration defaultCacheConfiguration,
                                  Map<String, TarantoolCacheConfiguration> initialCacheConfigurations, boolean allowInFlightCacheCreation) {
-        this(cacheWriter, defaultCacheConfiguration, allowInFlightCacheCreation);
+        this(tarantoolClient, defaultCacheConfiguration, allowInFlightCacheCreation);
 
         Assert.notNull(initialCacheConfigurations, "InitialCacheConfigurations must not be null");
 
@@ -72,7 +77,7 @@ public class TarantoolCacheManager extends AbstractCacheManager {
     public static TarantoolCacheManager create(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient) {
         Assert.notNull(tarantoolClient, "TarantoolClient must not be null");
 
-        return new TarantoolCacheManager(new DefaultTarantoolCacheWriter(tarantoolClient), TarantoolCacheConfiguration.defaultCacheConfig());
+        return new TarantoolCacheManager(tarantoolClient, TarantoolCacheConfiguration.defaultCacheConfig());
     }
 
     @Override
@@ -88,6 +93,6 @@ public class TarantoolCacheManager extends AbstractCacheManager {
     }
 
     protected TarantoolCache createTarantoolCache(String name, @Nullable TarantoolCacheConfiguration cacheConfig) {
-        return new TarantoolCache(name, cacheWriter, cacheConfig != null ? cacheConfig : defaultCacheConfig);
+        return new TarantoolCache(name, cacheConfig != null ? cacheConfig : defaultCacheConfig, tarantoolClient);
     }
 }
