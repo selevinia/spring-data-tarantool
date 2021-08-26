@@ -10,6 +10,8 @@ import io.tarantool.driver.api.tuple.operations.TupleOperations;
 import io.tarantool.driver.mappers.MessagePackMapper;
 import io.tarantool.driver.metadata.TarantoolSpaceMetadata;
 import io.tarantool.driver.protocol.TarantoolIndexQuery;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataRetrievalFailureException;
 import org.springframework.data.tarantool.TarantoolCacheAccessException;
@@ -23,13 +25,15 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 
-// todo - set lock for write operations?
 public class DefaultTarantoolNativeCache implements TarantoolNativeCache, TarantoolClientAware {
+    private static final Logger log = LoggerFactory.getLogger(DefaultTarantoolNativeCache.class);
 
     private static final LocalDateTime MAX_TIME = LocalDateTime.ofInstant(Instant.ofEpochMilli(Long.MAX_VALUE), ZoneId.systemDefault());
 
@@ -46,6 +50,8 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
         this.spaceName = cacheName.replaceAll("[^a-zA-Z0-9]", "_"); // todo - generate spaceName and create space
         this.tarantoolClient = tarantoolClient;
         this.tarantoolConverter = tarantoolConverter;
+
+        createSpaceIfNeeded();
     }
 
     @Override
@@ -113,6 +119,41 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
 
     private Conditions primaryIndexQuery(byte[] key) {
         return Conditions.indexEquals(TarantoolIndexQuery.PRIMARY, List.of(tarantoolConverter.convertToWritableType(key)));
+    }
+
+    private void createSpaceIfNeeded() {
+        Optional<TarantoolSpaceMetadata> spaceMetadata = spaceMetadata(spaceName);
+        if (spaceMetadata.isEmpty()) {
+            unwrap(tarantoolClient.eval(String.format("box.schema.space.create('%s')", spaceName)));
+
+            unwrap(
+                    tarantoolClient.call(String.format("box.space.%s:format", spaceName), spaceFormatParams())
+                            .thenCompose(r -> tarantoolClient.call(String.format("box.space.%s:create_index", spaceName), spaceIndexParams()))
+                            .thenCompose(r -> tarantoolClient.metadata().refresh())
+                            .whenComplete((r, e) -> {
+                                if (e != null) {
+                                    log.error(String.format("Error while format space %s", spaceName), e);
+                                    dropSpace();
+                                }
+                            })
+            );
+        }
+    }
+
+    private List<?> dropSpace() {
+        return unwrap(tarantoolClient.eval(String.format("box.space.%s:drop", spaceName)));
+    }
+
+    private Object spaceFormatParams() {
+        return List.of(
+                Map.of("name", "key", "type", "scalar"),
+                Map.of("name", "value", "type", "any"),
+                Map.of("name", "expiry_time", "type", "unsigned")
+        );
+    }
+
+    private List<Object> spaceIndexParams() {
+        return List.of("primary", Map.of("parts", List.of("key")));
     }
 
     private <R> CompletableFuture<R> execute(Function<TarantoolSpaceOperations<TarantoolTuple, TarantoolResult<TarantoolTuple>>, CompletableFuture<R>> operation) {
