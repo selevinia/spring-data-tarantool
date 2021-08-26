@@ -1,5 +1,6 @@
 package org.springframework.data.tarantool.cache;
 
+import org.springframework.data.tarantool.core.mapping.Field;
 import org.springframework.data.tarantool.core.mapping.PrimaryKey;
 
 import java.time.LocalDateTime;
@@ -8,6 +9,7 @@ public class TarantoolCacheEntry {
     @PrimaryKey
     private byte[] key;
     private byte[] value;
+    @Field("expiry_time")
     private LocalDateTime expiryTime;
 
     public TarantoolCacheEntry(byte[] key, byte[] value, LocalDateTime expiryTime) {
