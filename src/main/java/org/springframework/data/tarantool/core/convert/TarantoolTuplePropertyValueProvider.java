@@ -54,7 +54,11 @@ public class TarantoolTuplePropertyValueProvider extends AbstractTarantoolProper
         } else {
             String fieldName = property.getFieldName();
             if (propertyType.isCollectionLike()) {
-                propertyValue = tarantoolTuple.getList(fieldName);
+                if (propertyType.getType().equals(byte[].class)) {
+                    propertyValue = tarantoolTuple.getByteArray(fieldName);
+                } else {
+                    propertyValue = tarantoolTuple.getList(fieldName);
+                }
             } else if (propertyType.isMap()) {
                 propertyValue = tarantoolTuple.getMap(fieldName);
             } else {
