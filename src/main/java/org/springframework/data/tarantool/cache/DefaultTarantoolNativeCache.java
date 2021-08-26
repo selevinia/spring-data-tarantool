@@ -19,7 +19,9 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -28,6 +30,8 @@ import java.util.function.Function;
 
 // todo - set lock for write operations?
 public class DefaultTarantoolNativeCache implements TarantoolNativeCache, TarantoolClientAware {
+
+    private static final LocalDateTime MAX_TIME = LocalDateTime.ofInstant(Instant.ofEpochMilli(Long.MAX_VALUE), ZoneId.systemDefault());
 
     private final String spaceName;
     private final TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient;
@@ -39,7 +43,7 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
         Assert.notNull(cacheName, "Cache name must not be null");
         Assert.notNull(tarantoolClient, "TarantoolClient must not be null");
 
-        this.spaceName = cacheName; // todo - generate spaceName and create space
+        this.spaceName = cacheName.replaceAll("[^a-zA-Z0-9]", "_"); // todo - generate spaceName and create space
         this.tarantoolClient = tarantoolClient;
         this.tarantoolConverter = tarantoolConverter;
     }
@@ -71,7 +75,7 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
 
     @Override
     public void put(byte[] key, byte[] value, @Nullable Duration ttl) {
-        LocalDateTime expiryTime = ttl != null ? LocalDateTime.now().plusSeconds(ttl.getSeconds()) : LocalDateTime.MAX;
+        LocalDateTime expiryTime = ttl != null ? LocalDateTime.now().plusSeconds(ttl.getSeconds()) : MAX_TIME;
         TarantoolCacheEntry cacheEntry = TarantoolCacheEntry.of(key, value, expiryTime);
         unwrap(execute(spaceOps -> spaceOps.replace(cacheEntryToTuple(cacheEntry, tarantoolClient.getConfig().getMessagePackMapper(), requiredSpaceMetadata(spaceName)))));
     }
