@@ -47,7 +47,7 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
         Assert.notNull(cacheName, "Cache name must not be null");
         Assert.notNull(tarantoolClient, "TarantoolClient must not be null");
 
-        this.spaceName = cacheName.replaceAll("[^a-zA-Z0-9]", "_"); // todo - generate spaceName and create space
+        this.spaceName = cacheName.replaceAll("[^a-zA-Z0-9]", "_");
         this.tarantoolClient = tarantoolClient;
         this.tarantoolConverter = tarantoolConverter;
 
