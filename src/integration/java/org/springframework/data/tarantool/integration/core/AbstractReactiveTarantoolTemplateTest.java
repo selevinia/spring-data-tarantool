@@ -30,7 +30,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.TestInstance.Lifecycle;
 import static org.springframework.data.tarantool.integration.core.util.AssertConsumer.*;
-import static org.springframework.data.tarantool.integration.core.util.TestConfigProvider.*;
+import static org.springframework.data.tarantool.integration.config.TestConfigProvider.*;
 import static org.springframework.data.tarantool.integration.core.util.TestData.*;
 
 /**

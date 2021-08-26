@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.springframework.data.tarantool.integration.core.util.AssertConsumer.articleAssertConsumer;
-import static org.springframework.data.tarantool.integration.core.util.TestConfigProvider.*;
+import static org.springframework.data.tarantool.integration.config.TestConfigProvider.*;
 import static org.springframework.data.tarantool.integration.core.util.TestData.*;
 
 /**

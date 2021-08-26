@@ -1,4 +1,4 @@
-package org.springframework.data.tarantool.integration.core.util;
+package org.springframework.data.tarantool.integration.config;
 
 import lombok.experimental.UtilityClass;
 import org.springframework.data.mapping.model.SnakeCaseFieldNamingStrategy;
@@ -12,6 +12,7 @@ import org.springframework.data.tarantool.core.convert.TarantoolCustomConversion
 import org.springframework.data.tarantool.core.mapping.TarantoolMappingContext;
 import org.springframework.data.tarantool.integration.core.convert.LocaleToStringConverter;
 import org.springframework.data.tarantool.integration.core.convert.StringToLocaleConverter;
+import org.springframework.data.tarantool.integration.core.util.CaptureEventListener;
 
 import java.util.List;
 
