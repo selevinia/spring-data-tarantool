@@ -1,5 +1,8 @@
 package org.springframework.data.tarantool.integration.cache;
 
+import io.tarantool.driver.api.TarantoolClient;
+import io.tarantool.driver.api.TarantoolResult;
+import io.tarantool.driver.api.tuple.TarantoolTuple;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -17,11 +20,14 @@ import static org.springframework.data.tarantool.integration.config.TestConfigPr
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class TarantoolNativeCacheTest {
     private TarantoolNativeCache cache;
+    private TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> client;
 
     @BeforeAll
     void setUp() {
+        client = clientFactory(new SingleNodeTarantoolClientOptions()).createClient();
+
         cache = new DefaultTarantoolNativeCache("test",
-                clientFactory(new SingleNodeTarantoolClientOptions()).createClient(),
+                client,
                 TestConfigProvider.converter(TestConfigProvider.mappingContext()));
         cache.remove();
     }
@@ -79,11 +85,20 @@ public class TarantoolNativeCacheTest {
     @Test
     @SneakyThrows
     void shouldGetEmptyWhenExpired() {
-        cache.put("test-key".getBytes(), "test-value".getBytes(), Duration.ofMillis(500));
-
-        Thread.sleep(500);
+        cache.put("test-key".getBytes(), "test-value".getBytes(), Duration.ofMillis(1000));
 
         byte[] cached = cache.get("test-key".getBytes());
-        assertThat(cached).isNull();
+        assertThat(cached).isNotNull();
+
+        Integer count = client.callForSingleResult("box.space.test:len", Integer.class).get();
+        assertThat(count).isEqualTo(1);
+
+        Thread.sleep(1000);
+
+        byte[] expired = cache.get("test-key".getBytes());
+        assertThat(expired).isNull();
+
+        count = client.callForSingleResult("box.space.test:len", Integer.class).get();
+        assertThat(count).isEqualTo(0);
     }
 }

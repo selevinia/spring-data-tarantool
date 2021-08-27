@@ -6,7 +6,6 @@ import io.tarantool.driver.api.conditions.Conditions;
 import io.tarantool.driver.api.space.TarantoolSpaceOperations;
 import io.tarantool.driver.api.tuple.TarantoolTuple;
 import io.tarantool.driver.api.tuple.TarantoolTupleImpl;
-import io.tarantool.driver.api.tuple.operations.TupleOperations;
 import io.tarantool.driver.mappers.MessagePackMapper;
 import io.tarantool.driver.metadata.TarantoolSpaceMetadata;
 import io.tarantool.driver.protocol.TarantoolIndexQuery;
@@ -76,13 +75,18 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
 
     @Override
     public byte[] get(byte[] key) {
-        // todo - add deletion of expired element
         return unwrap(execute(spaceOps -> spaceOps.select(primaryIndexQuery(key))))
                 .stream()
                 .findFirst()
-                .map(this::tupleToCacheEntry)
-                .filter(cacheEntry -> cacheEntry.getExpiryTime().isAfter(LocalDateTime.now()))
-                .map(TarantoolCacheEntry::getValue)
+                .map(tuple -> {
+                    TarantoolCacheEntry cacheEntry = tupleToCacheEntry(tuple);
+                    if (cacheEntry.getExpiryTime().isAfter(LocalDateTime.now())) {
+                        return cacheEntry.getValue();
+                    } else {
+                        remove(cacheEntry.getKey());
+                        return null;
+                    }
+                })
                 .orElse(null);
     }
 
@@ -95,13 +99,11 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
 
     @Override
     public byte[] putIfAbsent(byte[] key, byte[] value, @Nullable Duration ttl) {
-        LocalDateTime expiryTime = ttl != null ? LocalDateTime.now().plusSeconds(ttl.getSeconds()) : MAX_TIME;
-        TarantoolCacheEntry cacheEntry = TarantoolCacheEntry.of(key, value, expiryTime);
-
-        TarantoolTuple tuple = cacheEntryToTuple(cacheEntry, tarantoolClient.getConfig().getMessagePackMapper(), requiredSpaceMetadata(spaceName));
-        TupleOperations updateFakeField = TupleOperations.set(3, null);
-        unwrap(execute(spaceOps -> spaceOps.upsert(primaryIndexQuery(key), tuple, updateFakeField)));
-        return value;
+        byte[] existedValue = get(key);
+        if (existedValue == null) {
+            put(key, value, ttl);
+        }
+        return existedValue;
     }
 
     @Override
