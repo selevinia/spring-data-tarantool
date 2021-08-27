@@ -26,7 +26,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -44,14 +43,22 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
     public DefaultTarantoolNativeCache(String cacheName,
                                        TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
                                        TarantoolConverter tarantoolConverter) {
-        Assert.notNull(cacheName, "Cache name must not be null");
+        Assert.notNull(cacheName, "CacheName must not be null");
         Assert.notNull(tarantoolClient, "TarantoolClient must not be null");
+        Assert.notNull(tarantoolConverter, "TarantoolConverter must not be null");
 
         this.spaceName = cacheName.replaceAll("[^a-zA-Z0-9]", "_");
         this.tarantoolClient = tarantoolClient;
         this.tarantoolConverter = tarantoolConverter;
 
-        createSpaceIfNeeded();
+        if (spaceMetadata(spaceName).isPresent()) {
+            log.debug("Space {} for caching was created earlier", spaceName);
+        } else if (!isProxyClient()) {
+            log.debug("Create space {} for caching", spaceName);
+            createCacheSpace();
+        } else {
+            throw new UnsupportedOperationException("Auto space creation for caching not supported with used client. Please create space manually");
+        }
     }
 
     @Override
@@ -88,11 +95,11 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
 
     @Override
     public byte[] putIfAbsent(byte[] key, byte[] value, @Nullable Duration ttl) {
-        LocalDateTime expiryTime = ttl != null ? LocalDateTime.now().plusSeconds(ttl.getSeconds()) : LocalDateTime.MAX;
+        LocalDateTime expiryTime = ttl != null ? LocalDateTime.now().plusSeconds(ttl.getSeconds()) : MAX_TIME;
         TarantoolCacheEntry cacheEntry = TarantoolCacheEntry.of(key, value, expiryTime);
 
         TarantoolTuple tuple = cacheEntryToTuple(cacheEntry, tarantoolClient.getConfig().getMessagePackMapper(), requiredSpaceMetadata(spaceName));
-        TupleOperations updateFakeField = TupleOperations.set(4, null);
+        TupleOperations updateFakeField = TupleOperations.set(3, null);
         unwrap(execute(spaceOps -> spaceOps.upsert(primaryIndexQuery(key), tuple, updateFakeField)));
         return value;
     }
@@ -104,7 +111,11 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
 
     @Override
     public void remove() {
-        unwrap(execute(spaceOps -> spaceOps.delete(Conditions.any())));
+        if (isProxyClient()) {
+            unwrap(tarantoolClient.call("crud.truncate", List.of(spaceName)));
+        } else {
+            unwrap(tarantoolClient.call(String.format("box.space.%s:truncate", spaceName)));
+        }
     }
 
     private TarantoolTuple cacheEntryToTuple(TarantoolCacheEntry cacheEntry, MessagePackMapper mapper, TarantoolSpaceMetadata spaceMetadata) {
@@ -119,41 +130,6 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
 
     private Conditions primaryIndexQuery(byte[] key) {
         return Conditions.indexEquals(TarantoolIndexQuery.PRIMARY, List.of(tarantoolConverter.convertToWritableType(key)));
-    }
-
-    private void createSpaceIfNeeded() {
-        Optional<TarantoolSpaceMetadata> spaceMetadata = spaceMetadata(spaceName);
-        if (spaceMetadata.isEmpty()) {
-            unwrap(tarantoolClient.eval(String.format("box.schema.space.create('%s')", spaceName)));
-
-            unwrap(
-                    tarantoolClient.call(String.format("box.space.%s:format", spaceName), spaceFormatParams())
-                            .thenCompose(r -> tarantoolClient.call(String.format("box.space.%s:create_index", spaceName), spaceIndexParams()))
-                            .thenCompose(r -> tarantoolClient.metadata().refresh())
-                            .whenComplete((r, e) -> {
-                                if (e != null) {
-                                    log.error(String.format("Error while format space %s", spaceName), e);
-                                    dropSpace();
-                                }
-                            })
-            );
-        }
-    }
-
-    private List<?> dropSpace() {
-        return unwrap(tarantoolClient.eval(String.format("box.space.%s:drop", spaceName)));
-    }
-
-    private Object spaceFormatParams() {
-        return List.of(
-                Map.of("name", "key", "type", "scalar"),
-                Map.of("name", "value", "type", "any"),
-                Map.of("name", "expiry_time", "type", "unsigned")
-        );
-    }
-
-    private List<Object> spaceIndexParams() {
-        return List.of("primary", Map.of("parts", List.of("key")));
     }
 
     private <R> CompletableFuture<R> execute(Function<TarantoolSpaceOperations<TarantoolTuple, TarantoolResult<TarantoolTuple>>, CompletableFuture<R>> operation) {
@@ -172,5 +148,33 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
         } catch (InterruptedException e) {
             throw new TarantoolCacheAccessException(e.getMessage(), e);
         }
+    }
+
+    private void createCacheSpace() {
+        unwrap(tarantoolClient.eval(String.format("box.schema.space.create('%s')", spaceName)));
+
+        unwrap(
+                tarantoolClient.call(String.format("box.space.%s:format", spaceName), cacheSpaceFormatParams())
+                        .thenCompose(r -> tarantoolClient.call(String.format("box.space.%s:create_index", spaceName), cacheSpaceIndexParams()))
+                        .thenCompose(r -> tarantoolClient.metadata().refresh())
+                        .whenComplete((r, e) -> {
+                            if (e != null) {
+                                log.error(String.format("Error while format space %s and create primary index, drop space", spaceName), e);
+                                unwrap(tarantoolClient.eval(String.format("box.space.%s:drop", spaceName)));
+                            }
+                        })
+        );
+    }
+
+    private Object cacheSpaceFormatParams() {
+        return List.of(
+                Map.of("name", "key", "type", "scalar"),
+                Map.of("name", "value", "type", "any"),
+                Map.of("name", "expiry_time", "type", "unsigned")
+        );
+    }
+
+    private List<Object> cacheSpaceIndexParams() {
+        return List.of("primary", Map.of("parts", List.of("key")));
     }
 }
