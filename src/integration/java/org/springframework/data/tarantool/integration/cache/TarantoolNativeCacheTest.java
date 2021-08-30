@@ -26,8 +26,7 @@ public class TarantoolNativeCacheTest {
     void setUp() {
         client = clientFactory(new SingleNodeTarantoolClientOptions()).createClient();
 
-        cache = new DefaultTarantoolNativeCache("test",
-                client,
+        cache = new DefaultTarantoolNativeCache("test", "integration", client,
                 TestConfigProvider.converter(TestConfigProvider.mappingContext()));
         cache.remove();
     }
@@ -90,7 +89,7 @@ public class TarantoolNativeCacheTest {
         byte[] cached = cache.get("test-key".getBytes());
         assertThat(cached).isNotNull();
 
-        Integer count = client.callForSingleResult("box.space.test:len", Integer.class).get();
+        Integer count = client.callForSingleResult("box.space.integration_test:len", Integer.class).get();
         assertThat(count).isEqualTo(1);
 
         Thread.sleep(1000);
@@ -98,7 +97,7 @@ public class TarantoolNativeCacheTest {
         byte[] expired = cache.get("test-key".getBytes());
         assertThat(expired).isNull();
 
-        count = client.callForSingleResult("box.space.test:len", Integer.class).get();
+        count = client.callForSingleResult("box.space.integration_test:len", Integer.class).get();
         assertThat(count).isEqualTo(0);
     }
 }

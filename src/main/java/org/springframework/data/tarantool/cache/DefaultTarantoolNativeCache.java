@@ -48,11 +48,17 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
     public DefaultTarantoolNativeCache(String cacheName,
                                        TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
                                        TarantoolConverter tarantoolConverter) {
+        this(cacheName, null, tarantoolClient, tarantoolConverter);
+    }
+
+    public DefaultTarantoolNativeCache(String cacheName, @Nullable String cacheNamePrefix,
+                                       TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
+                                       TarantoolConverter tarantoolConverter) {
         Assert.notNull(cacheName, "CacheName must not be null");
         Assert.notNull(tarantoolClient, "TarantoolClient must not be null");
         Assert.notNull(tarantoolConverter, "TarantoolConverter must not be null");
 
-        this.spaceName = cacheName.replaceAll("[^a-zA-Z0-9]", "_");
+        this.spaceName = cacheSpaceName(cacheName, cacheNamePrefix);
         this.tarantoolClient = tarantoolClient;
         this.tarantoolConverter = tarantoolConverter;
 
@@ -156,6 +162,14 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
         } catch (InterruptedException e) {
             throw new TarantoolCacheAccessException(e.getMessage(), e);
         }
+    }
+
+    private String cacheSpaceName(String cacheName, @Nullable String cacheNamePrefix) {
+        String preparedCacheName = cacheName.replaceAll("[^a-zA-Z0-9]", "_");
+        if (cacheNamePrefix != null) {
+            return String.format("%s_%s", cacheNamePrefix, preparedCacheName);
+        }
+        return preparedCacheName;
     }
 
     private void createCacheSpace() {
