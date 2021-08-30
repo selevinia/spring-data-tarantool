@@ -34,6 +34,7 @@ public class TarantoolCacheManager extends AbstractCacheManager {
                                  TarantoolCacheConfiguration defaultCacheConfig,
                                  boolean allowInFlightCacheCreation) {
         Assert.notNull(tarantoolClient, "TarantoolClient must not be null");
+        Assert.notNull(tarantoolConverter, "TarantoolConverter must not be null");
         Assert.notNull(defaultCacheConfig, "DefaultCacheConfiguration must not be null");
 
         this.tarantoolClient = tarantoolClient;

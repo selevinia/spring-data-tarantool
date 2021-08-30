@@ -20,27 +20,40 @@ public class TarantoolCacheConfiguration {
     private final Converter<Object, byte[]> serializer;
     private final Converter<byte[], Object> deserializer;
 
-    private TarantoolCacheConfiguration(Duration ttl, boolean cacheNullValues) {
+    private TarantoolCacheConfiguration(Duration ttl, boolean cacheNullValues,
+                                        Converter<Object, byte[]> serializer, Converter<byte[], Object> deserializer) {
         Assert.notNull(ttl, "TTL duration must not be null");
 
         this.ttl = ttl;
         this.cacheNullValues = cacheNullValues;
-        this.serializer = new SerializingConverter();
-        this.deserializer = new DeserializingConverter();
+        this.serializer = serializer;
+        this.deserializer = deserializer;
     }
 
     public static TarantoolCacheConfiguration defaultCacheConfig() {
-        return new TarantoolCacheConfiguration(Duration.ZERO, true);
+        return new TarantoolCacheConfiguration(Duration.ZERO, true, new SerializingConverter(), new DeserializingConverter());
     }
 
     public TarantoolCacheConfiguration entryTtl(Duration ttl) {
         Assert.notNull(ttl, "TTL duration must not be null");
 
-        return new TarantoolCacheConfiguration(ttl, cacheNullValues);
+        return new TarantoolCacheConfiguration(ttl, cacheNullValues, serializer, deserializer);
     }
 
     public TarantoolCacheConfiguration disableCachingNullValues() {
-        return new TarantoolCacheConfiguration(ttl, false);
+        return new TarantoolCacheConfiguration(ttl, false, serializer, deserializer);
+    }
+
+    public TarantoolCacheConfiguration serializeWith(Converter<Object, byte[]> serializer) {
+        Assert.notNull(serializer, "Converter for serializing must not be null");
+
+        return new TarantoolCacheConfiguration(ttl, cacheNullValues, serializer, deserializer);
+    }
+
+    public TarantoolCacheConfiguration deserializeWith(Converter<byte[], Object> deserializer) {
+        Assert.notNull(serializer, "Converter for deserializing must not be null");
+
+        return new TarantoolCacheConfiguration(ttl, cacheNullValues, serializer, deserializer);
     }
 
     public Duration getTtl() {
