@@ -177,7 +177,8 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
 
         unwrap(
                 tarantoolClient.call(String.format("box.space.%s:format", spaceName), cacheSpaceFormatParams())
-                        .thenCompose(r -> tarantoolClient.call(String.format("box.space.%s:create_index", spaceName), cacheSpaceIndexParams()))
+                        .thenCompose(r -> tarantoolClient.call(String.format("box.space.%s:create_index", spaceName), cacheSpacePrimaryIndexParams()))
+                        .thenCompose(r -> tarantoolClient.call(String.format("box.space.%s:create_index", spaceName), cacheSpaceExpiryTimeIndexParams()))
                         .thenCompose(r -> tarantoolClient.metadata().refresh())
                         .whenComplete((r, e) -> {
                             if (e != null) {
@@ -196,7 +197,11 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
         );
     }
 
-    private List<Object> cacheSpaceIndexParams() {
+    private List<Object> cacheSpacePrimaryIndexParams() {
         return List.of("primary", Map.of("parts", List.of("key")));
+    }
+
+    private List<Object> cacheSpaceExpiryTimeIndexParams() {
+        return List.of("expiry_time", Map.of("parts", List.of("expiry_time"), "unique", false));
     }
 }
