@@ -93,6 +93,15 @@ public class TarantoolCacheManager extends AbstractCacheManager {
         return new TarantoolCacheManager(tarantoolClient, tarantoolConverter, TarantoolCacheConfiguration.defaultCacheConfig());
     }
 
+    public static TarantoolCacheManagerBuilder builder() {
+        return new TarantoolCacheManagerBuilder();
+    }
+
+    public static TarantoolCacheManagerBuilder builder(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
+                                                       TarantoolConverter tarantoolConverter) {
+        return new TarantoolCacheManagerBuilder(tarantoolClient, tarantoolConverter);
+    }
+
     @Override
     protected Collection<? extends Cache> loadCaches() {
         return initialCacheConfiguration.entrySet().stream()
