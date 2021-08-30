@@ -103,6 +103,15 @@ public class TarantoolCache extends AbstractValueAdaptingCache {
         nativeCache.remove();
     }
 
+    /**
+     * Get {@link TarantoolCacheConfiguration} used.
+     *
+     * @return immutable {@link TarantoolCacheConfiguration}. Never {@literal null}.
+     */
+    public TarantoolCacheConfiguration getCacheConfiguration() {
+        return cacheConfig;
+    }
+
     private byte[] serializeCacheKey(Object cacheKey) {
         return cacheConfig.getSerializer().convert(cacheKey);
     }
