@@ -30,6 +30,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 
+/**
+ * Default implementation of {@link TarantoolNativeCache}, which provides low level access to Tarantool space operations used for
+ * caching.
+ *
+ * @author Tatiana Blinova
+ */
 public class DefaultTarantoolNativeCache implements TarantoolNativeCache, TarantoolClientAware {
     private static final Logger log = LoggerFactory.getLogger(DefaultTarantoolNativeCache.class);
 

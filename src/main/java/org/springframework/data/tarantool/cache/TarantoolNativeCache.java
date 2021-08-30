@@ -7,8 +7,6 @@ import java.time.Duration;
 /**
  * {@link TarantoolNativeCache} provides low level access to Tarantool space operations used for
  * caching.
- * The {@link TarantoolNativeCache} may be shared by multiple cache implementations and is responsible for writing / reading
- * data to / from Tarantool.
  *
  * @author Tatiana Blinova
  */

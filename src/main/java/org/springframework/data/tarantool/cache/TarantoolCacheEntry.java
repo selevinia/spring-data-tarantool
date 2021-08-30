@@ -5,6 +5,11 @@ import org.springframework.data.tarantool.core.mapping.PrimaryKey;
 
 import java.time.LocalDateTime;
 
+/**
+ * {@link TarantoolCacheEntry} used for work with Tarantool space
+ *
+ * @author Tatiana Blinova
+ */
 public class TarantoolCacheEntry {
     @PrimaryKey
     private byte[] key;
