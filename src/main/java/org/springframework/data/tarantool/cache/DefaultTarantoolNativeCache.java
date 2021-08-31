@@ -41,6 +41,7 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
 
     private static final LocalDateTime MAX_TIME = LocalDateTime.ofInstant(Instant.ofEpochMilli(Long.MAX_VALUE), ZoneId.systemDefault());
 
+    private final String cacheName;
     private final String spaceName;
     private final TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient;
     private final TarantoolConverter tarantoolConverter;
@@ -69,6 +70,7 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
         Assert.notNull(tarantoolConverter, "TarantoolConverter must not be null");
         Assert.notNull(cacheStatisticsCollector, "CacheStatisticsCollector must not be null!");
 
+        this.cacheName = cacheName;
         this.spaceName = cacheSpaceName(cacheName, cacheNamePrefix);
         this.tarantoolClient = tarantoolClient;
         this.tarantoolConverter = tarantoolConverter;
@@ -76,11 +78,9 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
 
         if (spaceMetadata(spaceName).isPresent()) {
             log.debug("Space {} for caching was created earlier", spaceName);
-        } else if (!isProxyClient()) {
+        } else {
             log.debug("Create space {} for caching", spaceName);
             createCacheSpace();
-        } else {
-            throw new UnsupportedOperationException("Auto space creation for caching not supported with used client. Please create space manually");
         }
     }
 
@@ -99,7 +99,7 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
 
     @Override
     public byte[] get(byte[] key) {
-        return unwrap(execute(spaceOps -> spaceOps.select(primaryIndexQuery(key))))
+        byte[] result = unwrap(execute(spaceOps -> spaceOps.select(primaryIndexQuery(key))))
                 .stream()
                 .findFirst()
                 .map(tuple -> {
@@ -112,6 +112,16 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
                     }
                 })
                 .orElse(null);
+
+        statistics.incGets(cacheName);
+
+        if (result != null) {
+            statistics.incHits(cacheName);
+        } else {
+            statistics.incMisses(cacheName);
+        }
+
+        return result;
     }
 
     @Override
@@ -119,6 +129,8 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
         LocalDateTime expiryTime = ttl != null && !ttl.isZero() && !ttl.isNegative() ? LocalDateTime.now().plusSeconds(ttl.getSeconds()) : MAX_TIME;
         TarantoolCacheEntry cacheEntry = TarantoolCacheEntry.of(key, value, expiryTime);
         unwrap(execute(spaceOps -> spaceOps.replace(cacheEntryToTuple(cacheEntry, tarantoolClient.getConfig().getMessagePackMapper(), requiredSpaceMetadata(spaceName)))));
+
+        statistics.incPuts(cacheName);
     }
 
     @Override
@@ -137,11 +149,8 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
 
     @Override
     public void remove() {
-        if (isProxyClient()) {
-            unwrap(tarantoolClient.call("crud.truncate", List.of(spaceName)));
-        } else {
-            unwrap(tarantoolClient.call(String.format("box.space.%s:truncate", spaceName)));
-        }
+        unwrap(tarantoolClient.call(String.format("box.space.%s:truncate", spaceName)));
+        statistics.incDeletes(spaceName);
     }
 
     @Override
