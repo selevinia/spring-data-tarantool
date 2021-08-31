@@ -222,8 +222,8 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
 
     private Object cacheSpaceFormatParams() {
         return List.of(
-                Map.of("name", "key", "type", "scalar"),
-                Map.of("name", "value", "type", "any"),
+                Map.of("name", "key", "type", "varbinary"),
+                Map.of("name", "value", "type", "varbinary"),
                 Map.of("name", "expiry_time", "type", "unsigned")
         );
     }
