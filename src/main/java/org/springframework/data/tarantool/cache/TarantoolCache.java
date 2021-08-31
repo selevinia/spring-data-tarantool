@@ -28,16 +28,18 @@ public class TarantoolCache extends AbstractValueAdaptingCache {
 
     public TarantoolCache(String cacheName, TarantoolCacheConfiguration cacheConfig,
                           TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
-                          TarantoolConverter tarantoolConverter) {
+                          TarantoolConverter tarantoolConverter,
+                          CacheStatisticsCollector statisticsCollector) {
         super(cacheConfig.getAllowCacheNullValues());
 
         Assert.notNull(cacheName, "Cache name must not be null");
         Assert.notNull(cacheConfig, "CacheConfig must not be null");
         Assert.notNull(tarantoolClient, "TarantoolClient must not be null");
+        Assert.notNull(tarantoolClient, "CacheStatisticsCollector must not be null");
 
         this.cacheName = cacheName;
         this.cacheConfig = cacheConfig;
-        this.nativeCache = new DefaultTarantoolNativeCache(cacheName, cacheConfig.getCacheNamePrefix(), tarantoolClient, tarantoolConverter);
+        this.nativeCache = new DefaultTarantoolNativeCache(cacheName, cacheConfig.getCacheNamePrefix(), tarantoolClient, tarantoolConverter, statisticsCollector);
         this.binaryNullValue = cacheConfig.getSerializer().convert(NullValue.INSTANCE);
     }
 
