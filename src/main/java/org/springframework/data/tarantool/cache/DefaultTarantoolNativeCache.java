@@ -44,23 +44,35 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
     private final String spaceName;
     private final TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient;
     private final TarantoolConverter tarantoolConverter;
+    private final CacheStatisticsCollector statistics;
 
     public DefaultTarantoolNativeCache(String cacheName,
                                        TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
                                        TarantoolConverter tarantoolConverter) {
-        this(cacheName, null, tarantoolClient, tarantoolConverter);
+        this(cacheName, null, tarantoolClient, tarantoolConverter, CacheStatisticsCollector.none());
     }
 
-    public DefaultTarantoolNativeCache(String cacheName, @Nullable String cacheNamePrefix,
+    public DefaultTarantoolNativeCache(String cacheName,
+                                       @Nullable String cacheNamePrefix,
                                        TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
                                        TarantoolConverter tarantoolConverter) {
+        this(cacheName, cacheNamePrefix, tarantoolClient, tarantoolConverter, CacheStatisticsCollector.none());
+    }
+
+    public DefaultTarantoolNativeCache(String cacheName,
+                                       @Nullable String cacheNamePrefix,
+                                       TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
+                                       TarantoolConverter tarantoolConverter,
+                                       CacheStatisticsCollector cacheStatisticsCollector) {
         Assert.notNull(cacheName, "CacheName must not be null");
         Assert.notNull(tarantoolClient, "TarantoolClient must not be null");
         Assert.notNull(tarantoolConverter, "TarantoolConverter must not be null");
+        Assert.notNull(cacheStatisticsCollector, "CacheStatisticsCollector must not be null!");
 
         this.spaceName = cacheSpaceName(cacheName, cacheNamePrefix);
         this.tarantoolClient = tarantoolClient;
         this.tarantoolConverter = tarantoolConverter;
+        this.statistics = cacheStatisticsCollector;
 
         if (spaceMetadata(spaceName).isPresent()) {
             log.debug("Space {} for caching was created earlier", spaceName);
@@ -130,6 +142,11 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
         } else {
             unwrap(tarantoolClient.call(String.format("box.space.%s:truncate", spaceName)));
         }
+    }
+
+    @Override
+    public CacheStatistics getCacheStatistics(String cacheName) {
+        return statistics.getCacheStatistics(cacheName);
     }
 
     private TarantoolTuple cacheEntryToTuple(TarantoolCacheEntry cacheEntry, MessagePackMapper mapper, TarantoolSpaceMetadata spaceMetadata) {

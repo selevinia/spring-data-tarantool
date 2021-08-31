@@ -10,7 +10,7 @@ import java.time.Duration;
  *
  * @author Tatiana Blinova
  */
-public interface TarantoolNativeCache {
+public interface TarantoolNativeCache extends CacheStatisticsProvider {
 
     /**
      * Get value from Tarantool stored for the given key.
