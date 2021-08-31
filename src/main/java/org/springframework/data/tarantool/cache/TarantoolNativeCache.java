@@ -52,4 +52,9 @@ public interface TarantoolNativeCache extends CacheStatisticsProvider {
      * Remove all keys.
      */
     void remove();
+
+    /**
+     * Reset all statistics counters and gauges for this cache.
+     */
+    void clearStatistics(String name);
 }
