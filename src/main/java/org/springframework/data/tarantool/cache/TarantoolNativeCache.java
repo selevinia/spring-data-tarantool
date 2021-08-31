@@ -56,5 +56,5 @@ public interface TarantoolNativeCache extends CacheStatisticsProvider {
     /**
      * Reset all statistics counters and gauges for this cache.
      */
-    void clearStatistics(String name);
+    void clearStatistics(String cacheName);
 }
