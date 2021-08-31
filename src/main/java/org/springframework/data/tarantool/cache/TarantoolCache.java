@@ -37,7 +37,7 @@ public class TarantoolCache extends AbstractValueAdaptingCache {
 
         this.cacheName = cacheName;
         this.cacheConfig = cacheConfig;
-        this.nativeCache = new DefaultTarantoolNativeCache(cacheName, tarantoolClient, tarantoolConverter);
+        this.nativeCache = new DefaultTarantoolNativeCache(cacheName, cacheConfig.getCacheNamePrefix(), tarantoolClient, tarantoolConverter);
         this.binaryNullValue = cacheConfig.getSerializer().convert(NullValue.INSTANCE);
     }
 
