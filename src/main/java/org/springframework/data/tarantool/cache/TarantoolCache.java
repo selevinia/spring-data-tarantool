@@ -106,6 +106,23 @@ public class TarantoolCache extends AbstractValueAdaptingCache {
     }
 
     /**
+     * Return the {@link CacheStatistics} snapshot for this cache instance. Statistics are accumulated per cache instance
+     * and not from the backing Redis data store.
+     *
+     * @return statistics object for this {@link TarantoolCache}.
+     */
+    public CacheStatistics getStatistics() {
+        return nativeCache.getCacheStatistics(getName());
+    }
+
+    /**
+     * Reset all statistics counters and gauges for this cache.
+     */
+    public void clearStatistics() {
+        nativeCache.clearStatistics(getName());
+    }
+
+    /**
      * Get {@link TarantoolCacheConfiguration} used.
      *
      * @return immutable {@link TarantoolCacheConfiguration}. Never {@literal null}.
