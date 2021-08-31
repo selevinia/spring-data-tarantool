@@ -105,6 +105,25 @@ local function init_space()
     translated:create_index("bucket_id", { parts = { { field = "bucket_id" } },
                                            unique = false,
                                            if_not_exists = true })
+
+    local cache = box.schema.space.create("integration_test", { if_not_exists = true })
+    cache:format({
+        { name = "key", type = "scalar"},
+        { name = "value", type = "any"},
+        { name = "expiry_time", type = "unsigned"},
+        { name = "bucket_id", type = "unsigned" },
+    })
+
+    cache:create_index("primary", { parts = { { field = "key" } },
+                                       if_not_exists = true })
+
+    cache:create_index("bucket_id", { parts = { { field = "bucket_id" } },
+                                           unique = false,
+                                           if_not_exists = true })
+
+    cache:create_index("expiry_time", { parts = { { field = "expiry_time" } },
+                                           unique = false,
+                                           if_not_exists = true })
 end
 
 local function find_users_by_last_name(name)

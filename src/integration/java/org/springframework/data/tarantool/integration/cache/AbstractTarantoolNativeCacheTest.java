@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.data.tarantool.cache.DefaultTarantoolNativeCache;
 import org.springframework.data.tarantool.cache.TarantoolNativeCache;
+import org.springframework.data.tarantool.config.client.TarantoolClientOptions;
 import org.springframework.data.tarantool.integration.config.SingleNodeTarantoolClientOptions;
 import org.springframework.data.tarantool.integration.config.TestConfigProvider;
 
@@ -18,13 +19,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.data.tarantool.integration.config.TestConfigProvider.clientFactory;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class TarantoolNativeCacheTest {
+public abstract class AbstractTarantoolNativeCacheTest {
     private TarantoolNativeCache cache;
     private TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> client;
 
+    public abstract TarantoolClientOptions getOptions();
+
     @BeforeAll
     void setUp() {
-        client = clientFactory(new SingleNodeTarantoolClientOptions()).createClient();
+        client = clientFactory(getOptions()).createClient();
 
         cache = new DefaultTarantoolNativeCache("test", "integration", client,
                 TestConfigProvider.converter(TestConfigProvider.mappingContext()));
