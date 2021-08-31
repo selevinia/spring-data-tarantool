@@ -158,6 +158,11 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
         return statistics.getCacheStatistics(cacheName);
     }
 
+    @Override
+    public void clearStatistics(String cacheName) {
+        statistics.reset(cacheName);
+    }
+
     private TarantoolTuple cacheEntryToTuple(TarantoolCacheEntry cacheEntry, MessagePackMapper mapper, TarantoolSpaceMetadata spaceMetadata) {
         TarantoolTuple tuple = new TarantoolTupleImpl(mapper, spaceMetadata);
         tarantoolConverter.write(cacheEntry, tuple);
