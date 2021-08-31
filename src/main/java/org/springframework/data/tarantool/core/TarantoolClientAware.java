@@ -1,6 +1,7 @@
 package org.springframework.data.tarantool.core;
 
 import io.tarantool.driver.ProxyTarantoolClient;
+import io.tarantool.driver.RetryingTarantoolClient;
 import io.tarantool.driver.TarantoolVersion;
 import io.tarantool.driver.api.TarantoolClient;
 import io.tarantool.driver.api.TarantoolResult;
@@ -9,7 +10,9 @@ import io.tarantool.driver.api.tuple.TarantoolTuple;
 import io.tarantool.driver.metadata.TarantoolSpaceMetadata;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.mapping.MappingException;
+import org.springframework.data.tarantool.core.mapping.UnsupportedTarantoolOperationException;
 
+import java.lang.reflect.Field;
 import java.util.Optional;
 
 /**
@@ -31,8 +34,19 @@ public interface TarantoolClientAware {
      *
      * @return true if ProxyTarantoolClient used
      */
+    @SuppressWarnings({"unchecked", "rawtypes"})
     default boolean isProxyClient() {
-        return getClient() instanceof ProxyTarantoolClient;
+        TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> client = getClient();
+        if (client instanceof RetryingTarantoolClient) {
+            try {
+                Field clientField = RetryingTarantoolClient.class.getDeclaredField("client");
+                clientField.setAccessible(true);
+                client = (TarantoolClient) clientField.get(client);
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                throw new UnsupportedTarantoolOperationException("Can't access client field", e);
+            }
+        }
+        return client instanceof ProxyTarantoolClient;
     }
 
     /**
