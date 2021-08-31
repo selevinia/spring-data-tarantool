@@ -35,7 +35,7 @@ public class TarantoolCache extends AbstractValueAdaptingCache {
         Assert.notNull(cacheName, "Cache name must not be null");
         Assert.notNull(cacheConfig, "CacheConfig must not be null");
         Assert.notNull(tarantoolClient, "TarantoolClient must not be null");
-        Assert.notNull(tarantoolClient, "CacheStatisticsCollector must not be null");
+        Assert.notNull(statisticsCollector, "CacheStatisticsCollector must not be null");
 
         this.cacheName = cacheName;
         this.cacheConfig = cacheConfig;
