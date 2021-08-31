@@ -104,7 +104,7 @@ public class DefaultTarantoolNativeCache implements TarantoolNativeCache, Tarant
 
     @Override
     public void put(byte[] key, byte[] value, @Nullable Duration ttl) {
-        LocalDateTime expiryTime = ttl != null ? LocalDateTime.now().plusSeconds(ttl.getSeconds()) : MAX_TIME;
+        LocalDateTime expiryTime = ttl != null && !ttl.isZero() && !ttl.isNegative() ? LocalDateTime.now().plusSeconds(ttl.getSeconds()) : MAX_TIME;
         TarantoolCacheEntry cacheEntry = TarantoolCacheEntry.of(key, value, expiryTime);
         unwrap(execute(spaceOps -> spaceOps.replace(cacheEntryToTuple(cacheEntry, tarantoolClient.getConfig().getMessagePackMapper(), requiredSpaceMetadata(spaceName)))));
     }
