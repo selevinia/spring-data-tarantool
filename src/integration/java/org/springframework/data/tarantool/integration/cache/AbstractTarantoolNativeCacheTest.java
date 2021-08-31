@@ -10,7 +10,6 @@ import org.junit.jupiter.api.TestInstance;
 import org.springframework.data.tarantool.cache.DefaultTarantoolNativeCache;
 import org.springframework.data.tarantool.cache.TarantoolNativeCache;
 import org.springframework.data.tarantool.config.client.TarantoolClientOptions;
-import org.springframework.data.tarantool.integration.config.SingleNodeTarantoolClientOptions;
 import org.springframework.data.tarantool.integration.config.TestConfigProvider;
 
 import java.time.Duration;
