@@ -326,8 +326,8 @@ public class ReactiveTarantoolTemplate extends ExceptionTranslatorSupport implem
     public <T> Mono<Boolean> truncate(Class<T> entityClass) {
         Assert.notNull(entityClass, "Entity class must not be null");
 
+        String spaceName = spaceName(entityClass);
         if (isProxyClient()) {
-            String spaceName = spaceName(entityClass);
             return execute(() -> tarantoolClient.callForSingleResult("crud.truncate", Collections.singletonList(spaceName), Boolean.class))
                     .flatMap(result -> {
                         if (result) {
@@ -336,8 +336,10 @@ public class ReactiveTarantoolTemplate extends ExceptionTranslatorSupport implem
                             return Mono.error(new TarantoolSpaceOperationException(String.format("Failed to truncate space %s", spaceName)));
                         }
                     });
+        } else {
+            return execute(() -> tarantoolClient.call(String.format("box.space.%s:truncate", spaceName)))
+                    .map(result -> true);
         }
-        return Mono.error(new UnsupportedOperationException("Truncate operation not supported yet in driver"));
     }
 
     @Override

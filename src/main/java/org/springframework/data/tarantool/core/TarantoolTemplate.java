@@ -336,15 +336,16 @@ public class TarantoolTemplate extends ExceptionTranslatorSupport implements App
     public <T> boolean truncate(Class<T> entityClass) {
         Assert.notNull(entityClass, "Entity class must not be null");
 
+        String spaceName = spaceName(entityClass);
         if (isProxyClient()) {
-            String spaceName = spaceName(entityClass);
             Boolean truncated = unwrap(tarantoolClient.callForSingleResult("crud.truncate", Collections.singletonList(spaceName), Boolean.class));
             if (!truncated) {
                 throw new TarantoolSpaceOperationException(String.format("Failed to truncate space %s", spaceName));
             }
-            return true;
+        } else {
+            tarantoolClient.call(String.format("box.space.%s:truncate", spaceName));
         }
-        throw new UnsupportedOperationException("Truncate operation not supported yet in driver");
+        return true;
     }
 
     @Override

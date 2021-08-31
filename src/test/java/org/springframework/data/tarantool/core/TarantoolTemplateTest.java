@@ -19,6 +19,7 @@ import org.springframework.data.tarantool.core.mapping.event.BeforeConvertCallba
 import org.springframework.data.tarantool.core.mapping.event.BeforeSaveCallback;
 
 import java.time.ZoneId;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -537,9 +538,11 @@ public class TarantoolTemplateTest extends AbstractTarantoolTemplateTest {
     }
 
     @Test
-    void shouldNotTruncateWithDefaultClient() {
-        assertThatThrownBy(() -> tarantoolTemplate.truncate(Message.class))
-                .isInstanceOf(UnsupportedOperationException.class);
+    void shouldTruncateWithDefaultClient() {
+        when(tarantoolClient.call("box.space.messages:truncate")).thenReturn(CompletableFuture.completedFuture(Collections.emptyList()));
+        boolean truncated = tarantoolTemplate.truncate(Message.class);
+
+        assertThat(truncated).isTrue();
     }
 
     @Test

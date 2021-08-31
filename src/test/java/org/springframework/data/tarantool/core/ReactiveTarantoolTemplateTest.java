@@ -22,6 +22,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.time.ZoneId;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -573,10 +574,12 @@ public class ReactiveTarantoolTemplateTest extends AbstractTarantoolTemplateTest
     }
 
     @Test
-    void shouldNotTruncateWithDefaultClient() {
+    void shouldTruncateWithDefaultClient() {
+        when(tarantoolClient.call("box.space.messages:truncate")).thenReturn(CompletableFuture.completedFuture(Collections.emptyList()));
+
         reactiveTarantoolTemplate.truncate(Message.class).as(StepVerifier::create)
-                .consumeErrorWith(e -> assertThat(e).isInstanceOf(UnsupportedOperationException.class))
-                .verify();
+                .expectNext(true)
+                .verifyComplete();
     }
 
     @Test
