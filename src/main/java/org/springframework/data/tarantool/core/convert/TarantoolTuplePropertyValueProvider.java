@@ -12,6 +12,7 @@ import org.springframework.data.util.TypeInformation;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -55,7 +56,13 @@ public class TarantoolTuplePropertyValueProvider extends AbstractTarantoolProper
             String fieldName = property.getFieldName();
             if (propertyType.isCollectionLike()) {
                 if (propertyType.getType().equals(byte[].class)) {
-                    propertyValue = tarantoolTuple.getByteArray(fieldName);
+                    if (tarantoolTuple.canGetObject(fieldName, byte[].class)) {
+                        propertyValue = tarantoolTuple.getByteArray(fieldName);
+                    } else if (tarantoolTuple.canGetObject(fieldName, String.class)) {
+                        propertyValue = tarantoolTuple.getString(fieldName).getBytes(StandardCharsets.UTF_8);
+                    } else {
+                        propertyValue = tarantoolTuple.getObject(fieldName).orElse(null);
+                    }
                 } else {
                     propertyValue = tarantoolTuple.getList(fieldName);
                 }

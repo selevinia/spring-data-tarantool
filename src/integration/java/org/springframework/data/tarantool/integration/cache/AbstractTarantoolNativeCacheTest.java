@@ -3,16 +3,23 @@ package org.springframework.data.tarantool.integration.cache;
 import io.tarantool.driver.api.TarantoolClient;
 import io.tarantool.driver.api.TarantoolResult;
 import io.tarantool.driver.api.tuple.TarantoolTuple;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.springframework.core.serializer.support.DeserializingConverter;
+import org.springframework.core.serializer.support.SerializingConverter;
 import org.springframework.data.tarantool.cache.DefaultTarantoolNativeCache;
 import org.springframework.data.tarantool.cache.TarantoolNativeCache;
 import org.springframework.data.tarantool.config.client.TarantoolClientOptions;
 import org.springframework.data.tarantool.integration.config.TestConfigProvider;
 
+import java.io.Serializable;
 import java.time.Duration;
+import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.data.tarantool.integration.config.TestConfigProvider.clientFactory;
@@ -46,6 +53,28 @@ public abstract class AbstractTarantoolNativeCacheTest {
         byte[] updated = cache.get("test-key".getBytes());
         assertThat(updated).isNotNull();
         assertThat(new String(updated)).isEqualTo("test-value-two");
+    }
+
+    @Test
+    void shouldPutAndGetMessageValue() {
+        SerializingConverter serializer = new SerializingConverter();
+        DeserializingConverter deserializer = new DeserializingConverter();
+
+        Message messageOne = new Message("one", "test-value-one");
+
+        cache.put("test-key".getBytes(), Objects.requireNonNull(serializer.convert(messageOne)), null);
+
+        byte[] cached = cache.get("test-key".getBytes());
+        assertThat(cached).isNotNull();
+        assertThat(deserializer.convert(cached)).isEqualTo(messageOne);
+
+        Message messageTwo = new Message("two", "test-value-two");
+
+        cache.put("test-key".getBytes(), Objects.requireNonNull(serializer.convert(messageTwo)), null);
+
+        byte[] updated = cache.get("test-key".getBytes());
+        assertThat(updated).isNotNull();
+        assertThat(deserializer.convert(updated)).isEqualTo(messageTwo);
     }
 
     @Test
@@ -101,5 +130,13 @@ public abstract class AbstractTarantoolNativeCacheTest {
 
         count = client.callForSingleResult("box.space.integration_test:len", Integer.class).get();
         assertThat(count).isEqualTo(0);
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Message implements Serializable {
+        private String id;
+        private String text;
     }
 }
