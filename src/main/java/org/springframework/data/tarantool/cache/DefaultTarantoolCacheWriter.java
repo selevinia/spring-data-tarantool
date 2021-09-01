@@ -27,6 +27,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -42,6 +43,7 @@ public class DefaultTarantoolCacheWriter implements TarantoolCacheWriter, Tarant
     private final TarantoolConverter tarantoolConverter;
     private final CacheStatisticsCollector statistics;
     private final SpaceNameProvider spaceNames;
+    private final Consumer<String> spaceCreator;
 
     /**
      * @param tarantoolClient must not be {@literal null}.
@@ -82,12 +84,13 @@ public class DefaultTarantoolCacheWriter implements TarantoolCacheWriter, Tarant
         this.tarantoolConverter = tarantoolConverter;
         this.statistics = statistics;
         this.spaceNames = spaceNames;
+        this.spaceCreator = s -> {};
     }
 
     @Nullable
     @Override
     public byte[] get(String name, byte[] key) {
-        String spaceName = spaceNames.get(name);
+        String spaceName = getSpaceName(name);
 
         byte[] result = unwrap(execute(spaceName, spaceOps -> spaceOps.select(primaryIndexQuery(key))))
                 .stream()
@@ -116,7 +119,7 @@ public class DefaultTarantoolCacheWriter implements TarantoolCacheWriter, Tarant
 
     @Override
     public void put(String name, byte[] key, byte[] value, @Nullable Duration ttl) {
-        String spaceName = spaceNames.get(name);
+        String spaceName = getSpaceName(name);
 
         LocalDateTime expiryTime = ttl != null && !ttl.isZero() && !ttl.isNegative() ? LocalDateTime.now().plusSeconds(ttl.getSeconds()) : MAX_TIME;
         TarantoolCacheEntry cacheEntry = TarantoolCacheEntry.of(key, value, expiryTime);
@@ -138,13 +141,13 @@ public class DefaultTarantoolCacheWriter implements TarantoolCacheWriter, Tarant
 
     @Override
     public void remove(String name, byte[] key) {
-        unwrap(execute(spaceNames.get(name), spaceOps -> spaceOps.delete(primaryIndexQuery(key))));
+        unwrap(execute(getSpaceName(name), spaceOps -> spaceOps.delete(primaryIndexQuery(key))));
         statistics.incDeletes(name);
     }
 
     @Override
     public void clear(String name) {
-        unwrap(tarantoolClient.call(String.format("box.space.%s:truncate", spaceNames.get(name))));
+        unwrap(tarantoolClient.call(String.format("box.space.%s:truncate", getSpaceName(name))));
     }
 
     @Override
@@ -173,6 +176,10 @@ public class DefaultTarantoolCacheWriter implements TarantoolCacheWriter, Tarant
             return new TarantoolCacheAccessException(throwable.getMessage(), throwable);
         }
         return new DataRetrievalFailureException(throwable.getMessage(), throwable);
+    }
+
+    private String getSpaceName(String name) {
+        return spaceNames.get(name, spaceCreator);
     }
 
     private TarantoolTuple cacheEntryToTuple(TarantoolCacheEntry cacheEntry, MessagePackMapper mapper, TarantoolSpaceMetadata spaceMetadata) {
@@ -216,13 +223,14 @@ public class DefaultTarantoolCacheWriter implements TarantoolCacheWriter, Tarant
             this.prefix = prefix;
         }
 
-        String get(String cacheName) {
+        String get(String cacheName, Consumer<String> spaceCreator) {
             return names.computeIfAbsent(cacheName, n -> {
-                String preparedCacheName = n.replaceAll("[^a-zA-Z0-9]", "_");
+                String spaceName = n.replaceAll("[^a-zA-Z0-9]", "_");
                 if (prefix != null) {
-                    return String.format("%s_%s", prefix, preparedCacheName);
+                    return String.format("%s_%s", prefix, spaceName);
                 }
-                return preparedCacheName;
+                spaceCreator.accept(spaceName);
+                return spaceName;
             });
         }
 

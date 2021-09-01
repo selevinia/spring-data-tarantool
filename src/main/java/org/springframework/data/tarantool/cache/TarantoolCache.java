@@ -1,12 +1,8 @@
 package org.springframework.data.tarantool.cache;
 
-import io.tarantool.driver.api.TarantoolClient;
-import io.tarantool.driver.api.TarantoolResult;
-import io.tarantool.driver.api.tuple.TarantoolTuple;
 import org.springframework.cache.support.AbstractValueAdaptingCache;
 import org.springframework.cache.support.NullValue;
 import org.springframework.cache.support.SimpleValueWrapper;
-import org.springframework.data.tarantool.core.convert.TarantoolConverter;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
@@ -18,44 +14,41 @@ import java.util.concurrent.Callable;
  * Use {@link TarantoolCacheManager} to create {@link TarantoolCache} instances.
  *
  * @author Tatiana Blinova
+ * @author Alexander Rublev
  */
 public class TarantoolCache extends AbstractValueAdaptingCache {
 
-    private final String cacheName;
+    private final String name;
     private final TarantoolCacheConfiguration cacheConfig;
-    private final TarantoolNativeCache nativeCache;
+    private final TarantoolCacheWriter cacheWriter;
     private final byte[] binaryNullValue;
 
-    public TarantoolCache(String cacheName, TarantoolCacheConfiguration cacheConfig,
-                          TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
-                          TarantoolConverter tarantoolConverter,
-                          CacheStatisticsCollector statisticsCollector) {
+    public TarantoolCache(String name, TarantoolCacheWriter cacheWriter, TarantoolCacheConfiguration cacheConfig) {
         super(cacheConfig.getAllowCacheNullValues());
 
-        Assert.notNull(cacheName, "Cache name must not be null");
-        Assert.notNull(cacheConfig, "CacheConfig must not be null");
-        Assert.notNull(tarantoolClient, "TarantoolClient must not be null");
-        Assert.notNull(statisticsCollector, "CacheStatisticsCollector must not be null");
+        Assert.notNull(name, "Cache name must not be null");
+        Assert.notNull(cacheWriter, "TarantoolCacheWriter must not be null");
+        Assert.notNull(cacheConfig, "TarantoolCacheConfiguration must not be null");
 
-        this.cacheName = cacheName;
+        this.name = name;
+        this.cacheWriter = cacheWriter;
         this.cacheConfig = cacheConfig;
-        this.nativeCache = new DefaultTarantoolNativeCache(cacheName, cacheConfig.getCacheNamePrefix(), tarantoolClient, tarantoolConverter, statisticsCollector);
         this.binaryNullValue = cacheConfig.getSerializer().convert(NullValue.INSTANCE);
     }
 
     @Override
     public String getName() {
-        return cacheName;
+        return name;
     }
 
     @Override
-    public TarantoolNativeCache getNativeCache() {
-        return nativeCache;
+    public TarantoolCacheWriter getNativeCache() {
+        return cacheWriter;
     }
 
     @Override
     protected Object lookup(Object key) {
-        byte[] value = nativeCache.get(serializeCacheKey(key));
+        byte[] value = cacheWriter.get(name, serializeCacheKey(key));
         if (value == null) {
             return null;
         }
@@ -83,12 +76,12 @@ public class TarantoolCache extends AbstractValueAdaptingCache {
 
     @Override
     public void put(Object key, @Nullable Object value) {
-        nativeCache.put(serializeCacheKey(key), serializeCacheValue(toStoreValue(value)), cacheConfig.getTtl());
+        cacheWriter.put(name, serializeCacheKey(key), serializeCacheValue(toStoreValue(value)), cacheConfig.getTtl());
     }
 
     @Override
     public ValueWrapper putIfAbsent(Object key, @Nullable Object value) {
-        byte[] result = nativeCache.putIfAbsent(serializeCacheKey(key), serializeCacheValue(toStoreValue(value)), cacheConfig.getTtl());
+        byte[] result = cacheWriter.putIfAbsent(name, serializeCacheKey(key), serializeCacheValue(toStoreValue(value)), cacheConfig.getTtl());
         if (result == null) {
             return null;
         }
@@ -97,29 +90,12 @@ public class TarantoolCache extends AbstractValueAdaptingCache {
 
     @Override
     public void evict(Object key) {
-        nativeCache.remove(serializeCacheKey(key));
+        cacheWriter.remove(name, serializeCacheKey(key));
     }
 
     @Override
     public void clear() {
-        nativeCache.remove();
-    }
-
-    /**
-     * Return the {@link CacheStatistics} snapshot for this cache instance. Statistics are accumulated per cache instance
-     * and not from the backing Redis data store.
-     *
-     * @return statistics object for this {@link TarantoolCache}.
-     */
-    public CacheStatistics getStatistics() {
-        return nativeCache.getCacheStatistics(getName());
-    }
-
-    /**
-     * Reset all statistics counters and gauges for this cache.
-     */
-    public void clearStatistics() {
-        nativeCache.clearStatistics(getName());
+        cacheWriter.clear(name);
     }
 
     /**
@@ -129,6 +105,23 @@ public class TarantoolCache extends AbstractValueAdaptingCache {
      */
     public TarantoolCacheConfiguration getCacheConfiguration() {
         return cacheConfig;
+    }
+
+    /**
+     * Return the {@link CacheStatistics} snapshot for this cache instance. Statistics are accumulated per cache instance
+     * and not from the backing Redis data store.
+     *
+     * @return statistics object for this {@link TarantoolCache}.
+     */
+    public CacheStatistics getStatistics() {
+        return cacheWriter.getCacheStatistics(getName());
+    }
+
+    /**
+     * Reset all statistics counters and gauges for this cache.
+     */
+    public void clearStatistics() {
+        cacheWriter.clearStatistics(getName());
     }
 
     private byte[] serializeCacheKey(Object cacheKey) {
