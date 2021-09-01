@@ -55,7 +55,9 @@ public interface TarantoolCacheWriter extends CacheStatisticsProvider {
     void remove(String name, byte[] key);
 
     /**
-     * Remove all keys.
+     * Remove all keys for this cache.
+     *
+     * @param name The cache name must not be {@literal null}.
      */
     void clear(String name);
 
