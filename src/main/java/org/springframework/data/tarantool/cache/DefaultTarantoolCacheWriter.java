@@ -227,7 +227,7 @@ public class DefaultTarantoolCacheWriter implements TarantoolCacheWriter, Tarant
             return names.computeIfAbsent(cacheName, n -> {
                 String spaceName = n.replaceAll("[^a-zA-Z0-9]", "_");
                 if (prefix != null) {
-                    return String.format("%s_%s", prefix, spaceName);
+                    spaceName = String.format("%s_%s", prefix, spaceName);
                 }
                 spaceCreator.accept(spaceName);
                 return spaceName;
