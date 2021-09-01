@@ -9,6 +9,8 @@ import io.tarantool.driver.api.tuple.TarantoolTupleImpl;
 import io.tarantool.driver.mappers.MessagePackMapper;
 import io.tarantool.driver.metadata.TarantoolSpaceMetadata;
 import io.tarantool.driver.protocol.TarantoolIndexQuery;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataRetrievalFailureException;
 import org.springframework.data.tarantool.TarantoolCacheAccessException;
@@ -37,6 +39,7 @@ import java.util.function.Function;
  * @author Alexander Rublev
  */
 public class DefaultTarantoolCacheWriter implements TarantoolCacheWriter, TarantoolClientAware {
+    private static final Logger log = LoggerFactory.getLogger(DefaultTarantoolCacheWriter.class);
     private static final LocalDateTime MAX_TIME = LocalDateTime.ofInstant(Instant.ofEpochMilli(Long.MAX_VALUE), ZoneId.systemDefault());
 
     private final TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient;
@@ -46,7 +49,7 @@ public class DefaultTarantoolCacheWriter implements TarantoolCacheWriter, Tarant
     private final Consumer<String> spaceCreator;
 
     /**
-     * @param tarantoolClient must not be {@literal null}.
+     * @param tarantoolClient    must not be {@literal null}.
      * @param tarantoolConverter must not be {@literal null}.
      */
     public DefaultTarantoolCacheWriter(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
@@ -55,9 +58,9 @@ public class DefaultTarantoolCacheWriter implements TarantoolCacheWriter, Tarant
     }
 
     /**
-     * @param tarantoolClient must not be {@literal null}.
+     * @param tarantoolClient    must not be {@literal null}.
      * @param tarantoolConverter must not be {@literal null}.
-     * @param cacheNamePrefix can be {@literal null}.
+     * @param cacheNamePrefix    can be {@literal null}.
      */
     public DefaultTarantoolCacheWriter(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
                                        TarantoolConverter tarantoolConverter,
@@ -66,10 +69,10 @@ public class DefaultTarantoolCacheWriter implements TarantoolCacheWriter, Tarant
     }
 
     /**
-     * @param tarantoolClient must not be {@literal null}.
+     * @param tarantoolClient    must not be {@literal null}.
      * @param tarantoolConverter must not be {@literal null}.
-     * @param statistics must not be {@literal null}.
-     * @param spaceNames must not be {@literal null}.
+     * @param statistics         must not be {@literal null}.
+     * @param spaceNames         must not be {@literal null}.
      */
     public DefaultTarantoolCacheWriter(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
                                        TarantoolConverter tarantoolConverter,
@@ -84,7 +87,36 @@ public class DefaultTarantoolCacheWriter implements TarantoolCacheWriter, Tarant
         this.tarantoolConverter = tarantoolConverter;
         this.statistics = statistics;
         this.spaceNames = spaceNames;
-        this.spaceCreator = s -> {};
+        this.spaceCreator = spaceName -> {
+            if (spaceMetadata(spaceName).isPresent()) {
+                log.debug("Space {} for caching was created earlier", spaceName);
+            } else {
+                log.debug("Create space {} for caching", spaceName);
+                unwrap(this.tarantoolClient.eval(String.format("box.schema.space.create('%s')", spaceName)));
+
+                Object cacheSpaceFormatParams = List.of(
+                        Map.of("name", "key", "type", "varbinary"),
+                        Map.of("name", "value", "type", "varbinary"),
+                        Map.of("name", "expiry_time", "type", "unsigned")
+                );
+
+                List<Object> cacheSpacePrimaryIndexParams = List.of("primary", Map.of("parts", List.of("key")));
+
+                List<Object> cacheSpaceExpiryTimeIndexParams = List.of("expiry_time", Map.of("parts", List.of("expiry_time"), "unique", false));
+
+                unwrap(this.tarantoolClient.call(String.format("box.space.%s:format", spaceName), cacheSpaceFormatParams)
+                        .thenCompose(r -> tarantoolClient.call(String.format("box.space.%s:create_index", spaceName), cacheSpacePrimaryIndexParams))
+                        .thenCompose(r -> tarantoolClient.call(String.format("box.space.%s:create_index", spaceName), cacheSpaceExpiryTimeIndexParams))
+                        .thenCompose(r -> tarantoolClient.metadata().refresh())
+                        .whenComplete((r, e) -> {
+                            if (e != null) {
+                                log.error(String.format("Error while format space %s and create primary index, drop space", spaceName), e);
+                                unwrap(tarantoolClient.eval(String.format("box.space.%s:drop", spaceName)));
+                            }
+                        })
+                );
+            }
+        };
     }
 
     @Nullable
