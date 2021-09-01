@@ -134,7 +134,6 @@ public class DefaultTarantoolCacheWriter implements TarantoolCacheWriter, Tarant
         byte[] existedValue = get(name, key);
         if (existedValue == null) {
             put(name, key, value, ttl);
-            return value;
         }
         return existedValue;
     }
