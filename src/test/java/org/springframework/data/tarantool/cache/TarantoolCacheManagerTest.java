@@ -4,7 +4,6 @@ import io.tarantool.driver.api.TarantoolClient;
 import io.tarantool.driver.api.TarantoolResult;
 import io.tarantool.driver.api.tuple.TarantoolTuple;
 import io.tarantool.driver.metadata.TarantoolMetadataOperations;
-import io.tarantool.driver.metadata.TarantoolSpaceMetadata;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -13,11 +12,9 @@ import org.springframework.data.tarantool.cache.TarantoolCacheManager.TarantoolC
 import org.springframework.data.tarantool.core.convert.TarantoolConverter;
 
 import java.util.Collections;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class TarantoolCacheManagerTest {
@@ -33,9 +30,6 @@ public class TarantoolCacheManagerTest {
 
     @Test
     void missingCacheShouldBeCreatedWithDefaultConfiguration() {
-        when(metadata.getSpaceByName(any())).thenReturn(Optional.of(new TarantoolSpaceMetadata()));
-        when(client.metadata()).thenReturn(metadata);
-
         TarantoolCacheConfiguration configuration = TarantoolCacheConfiguration.defaultCacheConfig().disableCachingNullValues();
 
         TarantoolCacheManager cm = TarantoolCacheManager.builder(client, converter).cacheDefaults(configuration).build();
@@ -46,9 +40,6 @@ public class TarantoolCacheManagerTest {
 
     @Test
     void appliesDefaultConfigurationToInitialCache() {
-        when(metadata.getSpaceByName(any())).thenReturn(Optional.of(new TarantoolSpaceMetadata()));
-        when(client.metadata()).thenReturn(metadata);
-
         TarantoolCacheConfiguration withNulls = TarantoolCacheConfiguration.defaultCacheConfig();
         TarantoolCacheConfiguration withoutNulls = TarantoolCacheConfiguration.defaultCacheConfig().disableCachingNullValues();
 
@@ -67,9 +58,6 @@ public class TarantoolCacheManagerTest {
 
     @Test
     void predefinedCacheShouldBeCreatedWithSpecificConfig() {
-        when(metadata.getSpaceByName(any())).thenReturn(Optional.of(new TarantoolSpaceMetadata()));
-        when(client.metadata()).thenReturn(metadata);
-
         TarantoolCacheConfiguration configuration = TarantoolCacheConfiguration.defaultCacheConfig().disableCachingNullValues();
 
         TarantoolCacheManager cm = TarantoolCacheManager.builder(client, converter)
@@ -85,9 +73,6 @@ public class TarantoolCacheManagerTest {
 
     @Test
     void lockedCacheManagerShouldPreventInFlightCacheCreation() {
-        when(metadata.getSpaceByName(any())).thenReturn(Optional.of(new TarantoolSpaceMetadata()));
-        when(client.metadata()).thenReturn(metadata);
-
         TarantoolCacheManager cm = TarantoolCacheManager.builder(client, converter)
                 .initialCacheNames(Collections.singleton("configured"))
                 .disableCreateOnMissingCache()
@@ -99,9 +84,6 @@ public class TarantoolCacheManagerTest {
 
     @Test
     void lockedCacheManagerShouldStillReturnPreconfiguredCaches() {
-        when(metadata.getSpaceByName(any())).thenReturn(Optional.of(new TarantoolSpaceMetadata()));
-        when(client.metadata()).thenReturn(metadata);
-
         TarantoolCacheManager cm = TarantoolCacheManager.builder(client, converter)
                 .initialCacheNames(Collections.singleton("configured"))
                 .disableCreateOnMissingCache()
