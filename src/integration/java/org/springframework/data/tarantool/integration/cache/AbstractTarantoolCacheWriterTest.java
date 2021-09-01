@@ -12,8 +12,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.core.serializer.support.DeserializingConverter;
 import org.springframework.core.serializer.support.SerializingConverter;
-import org.springframework.data.tarantool.cache.DefaultTarantoolNativeCache;
-import org.springframework.data.tarantool.cache.TarantoolNativeCache;
+import org.springframework.data.tarantool.cache.DefaultTarantoolCacheWriter;
+import org.springframework.data.tarantool.cache.TarantoolCacheWriter;
 import org.springframework.data.tarantool.config.client.TarantoolClientOptions;
 import org.springframework.data.tarantool.integration.config.TestConfigProvider;
 
@@ -25,9 +25,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.data.tarantool.integration.config.TestConfigProvider.clientFactory;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public abstract class AbstractTarantoolNativeCacheTest {
-    private TarantoolNativeCache cache;
+public abstract class AbstractTarantoolCacheWriterTest {
+    private TarantoolCacheWriter cacheWriter;
     private TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> client;
+    private static final String name = "test";
 
     public abstract TarantoolClientOptions getOptions();
 
@@ -35,22 +36,21 @@ public abstract class AbstractTarantoolNativeCacheTest {
     void setUp() {
         client = clientFactory(getOptions()).createClient();
 
-        cache = new DefaultTarantoolNativeCache("test", "integration", client,
-                TestConfigProvider.converter(TestConfigProvider.mappingContext()));
-        cache.remove();
+        cacheWriter = new DefaultTarantoolCacheWriter(client, TestConfigProvider.converter(TestConfigProvider.mappingContext()), "integration");
+        cacheWriter.clear(name);
     }
 
     @Test
     void shouldPutAndGet() {
-        cache.put("test-key".getBytes(), "test-value-one".getBytes(), null);
+        cacheWriter.put(name, "test-key".getBytes(), "test-value-one".getBytes(), null);
 
-        byte[] cached = cache.get("test-key".getBytes());
+        byte[] cached = cacheWriter.get(name, "test-key".getBytes());
         assertThat(cached).isNotNull();
         assertThat(new String(cached)).isEqualTo("test-value-one");
 
-        cache.put("test-key".getBytes(), "test-value-two".getBytes(), null);
+        cacheWriter.put(name, "test-key".getBytes(), "test-value-two".getBytes(), null);
 
-        byte[] updated = cache.get("test-key".getBytes());
+        byte[] updated = cacheWriter.get(name, "test-key".getBytes());
         assertThat(updated).isNotNull();
         assertThat(new String(updated)).isEqualTo("test-value-two");
     }
@@ -62,62 +62,62 @@ public abstract class AbstractTarantoolNativeCacheTest {
 
         Message messageOne = new Message("one", "test-value-one");
 
-        cache.put("test-key".getBytes(), Objects.requireNonNull(serializer.convert(messageOne)), null);
+        cacheWriter.put(name, "test-key".getBytes(), Objects.requireNonNull(serializer.convert(messageOne)), null);
 
-        byte[] cached = cache.get("test-key".getBytes());
+        byte[] cached = cacheWriter.get(name, "test-key".getBytes());
         assertThat(cached).isNotNull();
         assertThat(deserializer.convert(cached)).isEqualTo(messageOne);
 
         Message messageTwo = new Message("two", "test-value-two");
 
-        cache.put("test-key".getBytes(), Objects.requireNonNull(serializer.convert(messageTwo)), null);
+        cacheWriter.put(name, "test-key".getBytes(), Objects.requireNonNull(serializer.convert(messageTwo)), null);
 
-        byte[] updated = cache.get("test-key".getBytes());
+        byte[] updated = cacheWriter.get(name, "test-key".getBytes());
         assertThat(updated).isNotNull();
         assertThat(deserializer.convert(updated)).isEqualTo(messageTwo);
     }
 
     @Test
     void shouldPutAndRemove() {
-        cache.put("test-key".getBytes(), "test-value".getBytes(), null);
+        cacheWriter.put(name, "test-key".getBytes(), "test-value".getBytes(), null);
 
-        byte[] cached = cache.get("test-key".getBytes());
+        byte[] cached = cacheWriter.get(name, "test-key".getBytes());
         assertThat(cached).isNotNull();
         assertThat(new String(cached)).isEqualTo("test-value");
 
-        cache.remove("test-key".getBytes());
+        cacheWriter.remove(name, "test-key".getBytes());
 
-        byte[] removed = cache.get("test-key".getBytes());
+        byte[] removed = cacheWriter.get(name, "test-key".getBytes());
         assertThat(removed).isNull();
     }
 
     @Test
     void shouldPutIfAbsent() {
-        cache.putIfAbsent("test-key".getBytes(), "test-value-one".getBytes(), null);
+        cacheWriter.putIfAbsent(name, "test-key".getBytes(), "test-value-one".getBytes(), null);
 
-        byte[] cached = cache.get("test-key".getBytes());
+        byte[] cached = cacheWriter.get(name, "test-key".getBytes());
         assertThat(cached).isNotNull();
         assertThat(new String(cached)).isEqualTo("test-value-one");
 
-        cache.putIfAbsent("test-key".getBytes(), "test-value-two".getBytes(), null);
+        cacheWriter.putIfAbsent(name, "test-key".getBytes(), "test-value-two".getBytes(), null);
 
-        byte[] updated = cache.get("test-key".getBytes());
+        byte[] updated = cacheWriter.get(name, "test-key".getBytes());
         assertThat(updated).isNotNull();
         assertThat(new String(updated)).isEqualTo("test-value-one");
     }
 
     @Test
     void shouldGetEmpty() {
-        byte[] cached = cache.get("test-empty-key".getBytes());
+        byte[] cached = cacheWriter.get(name, "test-empty-key".getBytes());
         assertThat(cached).isNull();
     }
 
     @Test
     @SneakyThrows
     void shouldGetEmptyWhenExpired() {
-        cache.put("test-key".getBytes(), "test-value".getBytes(), Duration.ofMillis(1000));
+        cacheWriter.put(name, "test-key".getBytes(), "test-value".getBytes(), Duration.ofMillis(1000));
 
-        byte[] cached = cache.get("test-key".getBytes());
+        byte[] cached = cacheWriter.get(name, "test-key".getBytes());
         assertThat(cached).isNotNull();
 
         Integer count = client.callForSingleResult("box.space.integration_test:len", Integer.class).get();
@@ -125,7 +125,7 @@ public abstract class AbstractTarantoolNativeCacheTest {
 
         Thread.sleep(1000);
 
-        byte[] expired = cache.get("test-key".getBytes());
+        byte[] expired = cacheWriter.get(name, "test-key".getBytes());
         assertThat(expired).isNull();
 
         count = client.callForSingleResult("box.space.integration_test:len", Integer.class).get();
