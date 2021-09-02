@@ -3,7 +3,6 @@ package org.springframework.data.tarantool.cache;
 import io.tarantool.driver.api.TarantoolClient;
 import io.tarantool.driver.api.TarantoolResult;
 import io.tarantool.driver.api.tuple.TarantoolTuple;
-import io.tarantool.driver.metadata.TarantoolMetadataOperations;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -18,9 +17,6 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 @ExtendWith(MockitoExtension.class)
 public class TarantoolCacheManagerTest {
-
-    @Mock
-    private TarantoolMetadataOperations metadata;
 
     @Mock
     private TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> client;

@@ -30,7 +30,11 @@ public class TarantoolCache extends AbstractValueAdaptingCache {
         Assert.notNull(cacheWriter, "TarantoolCacheWriter must not be null");
         Assert.notNull(cacheConfig, "TarantoolCacheConfiguration must not be null");
 
-        this.name = name;
+        String preparedName = name;
+        if (cacheConfig.getCacheNamePrefix() != null) {
+            preparedName = String.format("%s_%s", cacheConfig.getCacheNamePrefix(), preparedName);
+        }
+        this.name = preparedName;
         this.cacheWriter = cacheWriter;
         this.cacheConfig = cacheConfig;
         this.binaryNullValue = cacheConfig.getSerializer().convert(NullValue.INSTANCE);

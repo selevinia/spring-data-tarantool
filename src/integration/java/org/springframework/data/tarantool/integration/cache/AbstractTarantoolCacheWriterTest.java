@@ -36,7 +36,7 @@ public abstract class AbstractTarantoolCacheWriterTest {
     void setUp() {
         client = clientFactory(getOptions()).createClient();
 
-        cacheWriter = new DefaultTarantoolCacheWriter(client, TestConfigProvider.converter(TestConfigProvider.mappingContext()), "integration");
+        cacheWriter = new DefaultTarantoolCacheWriter(client, TestConfigProvider.converter(TestConfigProvider.mappingContext()));
         cacheWriter.clear(name);
     }
 

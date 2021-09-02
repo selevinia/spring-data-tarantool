@@ -54,18 +54,7 @@ public class DefaultTarantoolCacheWriter implements TarantoolCacheWriter, Tarant
      */
     public DefaultTarantoolCacheWriter(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
                                        TarantoolConverter tarantoolConverter) {
-        this(tarantoolClient, tarantoolConverter, CacheStatisticsCollector.none(), SpaceNameProvider.create(null));
-    }
-
-    /**
-     * @param tarantoolClient    must not be {@literal null}.
-     * @param tarantoolConverter must not be {@literal null}.
-     * @param cacheNamePrefix    can be {@literal null}.
-     */
-    public DefaultTarantoolCacheWriter(TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> tarantoolClient,
-                                       TarantoolConverter tarantoolConverter,
-                                       @Nullable String cacheNamePrefix) {
-        this(tarantoolClient, tarantoolConverter, CacheStatisticsCollector.none(), SpaceNameProvider.create(cacheNamePrefix));
+        this(tarantoolClient, tarantoolConverter, CacheStatisticsCollector.none(), SpaceNameProvider.create());
     }
 
     /**
@@ -246,27 +235,20 @@ public class DefaultTarantoolCacheWriter implements TarantoolCacheWriter, Tarant
     }
 
     private static class SpaceNameProvider {
-        @Nullable
-        private final String prefix;
         private final Map<String, String> names = new ConcurrentHashMap<>();
 
-        private SpaceNameProvider(@Nullable String prefix) {
-            this.prefix = prefix;
+        private SpaceNameProvider() {
         }
 
         String get(String cacheName, Consumer<String> spaceCreator) {
             return names.computeIfAbsent(cacheName, n -> {
-                String spaceName = n.replaceAll("[^a-zA-Z0-9]", "_");
-                if (prefix != null) {
-                    spaceName = String.format("%s_%s", prefix, spaceName);
-                }
-                spaceCreator.accept(spaceName);
-                return spaceName;
+                spaceCreator.accept(n);
+                return n;
             });
         }
 
-        static SpaceNameProvider create(@Nullable String prefix) {
-            return new SpaceNameProvider(prefix);
+        static SpaceNameProvider create() {
+            return new SpaceNameProvider();
         }
     }
 }
