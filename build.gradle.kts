@@ -1,5 +1,5 @@
 group = "io.github.selevinia"
-version = "0.3.0"
+version = "0.3.1"
 description = "Spring Data module for Tarantool Database"
 
 plugins {
