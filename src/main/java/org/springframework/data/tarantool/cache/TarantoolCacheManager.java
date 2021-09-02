@@ -119,7 +119,7 @@ public class TarantoolCacheManager extends AbstractCacheManager {
         private CacheStatisticsCollector statisticsCollector = CacheStatisticsCollector.none();
         private TarantoolCacheConfiguration defaultCacheConfiguration = TarantoolCacheConfiguration.defaultCacheConfig();
         private final Map<String, TarantoolCacheConfiguration> initialCaches = new LinkedHashMap<>();
-        boolean allowInFlightCacheCreation = true;
+        private boolean allowInFlightCacheCreation = true;
 
         private TarantoolCacheManagerBuilder() {
         }
