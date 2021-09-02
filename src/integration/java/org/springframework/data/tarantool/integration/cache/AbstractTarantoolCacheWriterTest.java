@@ -28,7 +28,7 @@ import static org.springframework.data.tarantool.integration.config.TestConfigPr
 public abstract class AbstractTarantoolCacheWriterTest {
     private TarantoolCacheWriter cacheWriter;
     private TarantoolClient<TarantoolTuple, TarantoolResult<TarantoolTuple>> client;
-    private static final String name = "test";
+    private static final String name = "integration_test";
 
     public abstract TarantoolClientOptions getOptions();
 
@@ -120,7 +120,7 @@ public abstract class AbstractTarantoolCacheWriterTest {
         byte[] cached = cacheWriter.get(name, "test-key".getBytes());
         assertThat(cached).isNotNull();
 
-        Integer count = client.callForSingleResult("box.space.integration_test:len", Integer.class).get();
+        Integer count = client.callForSingleResult(String.format("box.space.%s:len", name), Integer.class).get();
         assertThat(count).isEqualTo(1);
 
         Thread.sleep(1000);
@@ -128,7 +128,7 @@ public abstract class AbstractTarantoolCacheWriterTest {
         byte[] expired = cacheWriter.get(name, "test-key".getBytes());
         assertThat(expired).isNull();
 
-        count = client.callForSingleResult("box.space.integration_test:len", Integer.class).get();
+        count = client.callForSingleResult(String.format("box.space.%s:len", name), Integer.class).get();
         assertThat(count).isEqualTo(0);
     }
 
