@@ -1,5 +1,5 @@
 group = "io.github.selevinia"
-version = "0.3.1"
+version = "0.3.2"
 description = "Spring Data module for Tarantool Database"
 
 plugins {
@@ -35,9 +35,20 @@ dependencies {
     api("org.springframework:spring-tx:5.3.8")
     api("org.springframework:spring-context:5.3.8")
 
-    implementation("io.tarantool:cartridge-driver:0.4.3")
+    implementation("io.tarantool:cartridge-driver:0.4.3") {
+        exclude("io.netty", "netty-all")
+    }
     implementation("io.projectreactor:reactor-core:3.4.7")
     implementation("com.google.code.findbugs:jsr305:3.0.2")
+
+    implementation("io.netty:netty-buffer:4.1.50.Final")
+    implementation("io.netty:netty-codec:4.1.50.Final")
+    implementation("io.netty:netty-common:4.1.50.Final")
+    implementation("io.netty:netty-handler:4.1.50.Final")
+    implementation("io.netty:netty-transport:4.1.50.Final")
+    implementation("io.netty:netty-resolver-dns-native-macos:4.1.50.Final")
+    implementation("io.netty:netty-resolver-dns:4.1.50.Final")
+    implementation("io.netty:netty-transport-native-epoll:4.1.50.Final")
 
     testCompileOnly("org.projectlombok:lombok:1.18.20")
     testAnnotationProcessor("org.projectlombok:lombok:1.18.20")
