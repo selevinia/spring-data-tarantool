@@ -9,4 +9,4 @@ services:
       TARANTOOL_USER_NAME: admin
       TARANTOOL_USER_PASSWORD: admin
     ports:
-      - 3303:3301
+      - "3303:3301"
