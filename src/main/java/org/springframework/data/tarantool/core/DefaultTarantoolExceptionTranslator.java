@@ -33,6 +33,14 @@ public class DefaultTarantoolExceptionTranslator implements TarantoolExceptionTr
             return new TarantoolServerConnectionException(exception.getMessage(), exception);
         }
 
+        if (exception instanceof TarantoolAttemptsLimitException) {
+            return new TarantoolServerConnectionException(exception.getMessage(), exception);
+        }
+
+        if (exception instanceof TarantoolTimeoutException) {
+            return new TarantoolServerConnectionException(exception.getMessage(), exception);
+        }
+
         if (exception instanceof TarantoolConnectionException) {
             return new TarantoolServerConnectionException(exception.getMessage(), exception);
         }
@@ -49,6 +57,10 @@ public class DefaultTarantoolExceptionTranslator implements TarantoolExceptionTr
             return new TarantoolDataAccessException(exception.getMessage(), exception);
         }
 
+        if (exception instanceof TarantoolEmptyMetadataException) {
+            return new TarantoolDataAccessException(exception.getMessage(), exception);
+        }
+
         if (exception instanceof TarantoolSpaceOperationException) {
             return new TarantoolDataAccessException(exception.getMessage(), exception);
         }
@@ -57,11 +69,15 @@ public class DefaultTarantoolExceptionTranslator implements TarantoolExceptionTr
             return new TarantoolDataAccessException(exception.getMessage(), exception);
         }
 
+        if (exception instanceof TarantoolAccessDeniedException) {
+            return new TarantoolDataAccessException(exception.getMessage(), exception);
+        }
+
         if (exception instanceof TarantoolClientException) {
             return new TarantoolServerConnectionException(exception.getMessage(), exception);
         }
 
-        if (exception instanceof TarantoolServerException) {
+        if (exception instanceof TarantoolInternalException) {
             return new TarantoolDataRetrievalException(exception.getMessage(), exception);
         }
 
@@ -70,6 +86,10 @@ public class DefaultTarantoolExceptionTranslator implements TarantoolExceptionTr
         }
 
         if (exception instanceof TarantoolIndexNotFoundException) {
+            return new TarantoolDataRetrievalException(exception.getMessage(), exception);
+        }
+
+        if (exception instanceof TarantoolNoSuchProcedureException) {
             return new TarantoolDataRetrievalException(exception.getMessage(), exception);
         }
 

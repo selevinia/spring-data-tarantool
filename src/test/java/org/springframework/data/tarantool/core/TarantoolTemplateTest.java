@@ -1,14 +1,14 @@
 package org.springframework.data.tarantool.core;
 
-import io.tarantool.driver.ProxyTarantoolTupleClient;
 import io.tarantool.driver.api.conditions.Conditions;
 import io.tarantool.driver.api.tuple.operations.TupleOperations;
+import io.tarantool.driver.core.ProxyTarantoolTupleClient;
 import io.tarantool.driver.exceptions.TarantoolClientException;
 import io.tarantool.driver.exceptions.TarantoolSpaceOperationException;
 import io.tarantool.driver.mappers.CallResultMapper;
-import io.tarantool.driver.mappers.DefaultResultMapperFactoryFactory;
-import io.tarantool.driver.mappers.ValueConverter;
-import io.tarantool.driver.metadata.TarantoolSpaceMetadata;
+import io.tarantool.driver.mappers.converters.ValueConverter;
+import io.tarantool.driver.api.metadata.TarantoolSpaceMetadata;
+import io.tarantool.driver.mappers.factories.ResultMapperFactoryFactoryImpl;
 import io.tarantool.driver.protocol.TarantoolIndexQuery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -550,7 +550,7 @@ public class TarantoolTemplateTest extends AbstractTarantoolTemplateTest {
     void shouldCallWithEntity() {
         when(tarantoolClient.metadata()).thenReturn(metadataOperations);
         when(metadataOperations.getSpaceByName(any())).thenReturn(Optional.of(spaceMetadata()));
-        when(tarantoolClient.getResultMapperFactoryFactory()).thenReturn(new DefaultResultMapperFactoryFactory());
+        when(tarantoolClient.getResultMapperFactoryFactory()).thenReturn(new ResultMapperFactoryFactoryImpl());
         when(tarantoolClient.callForSingleResult(any(), any(), any(), any(CallResultMapper.class))).thenReturn(CompletableFuture.completedFuture(tupleResult(messageOne, messageTwo, messageThree)));
 
         Message received = tarantoolTemplate.call("testFunction", List.of(1), Message.class);
@@ -576,7 +576,7 @@ public class TarantoolTemplateTest extends AbstractTarantoolTemplateTest {
         when(tarantoolClient.metadata()).thenReturn(metadataOperations);
 
         when(metadataOperations.getSpaceByName(any())).thenReturn(Optional.of(spaceMetadata()));
-        when(tarantoolClient.getResultMapperFactoryFactory()).thenReturn(new DefaultResultMapperFactoryFactory());
+        when(tarantoolClient.getResultMapperFactoryFactory()).thenReturn(new ResultMapperFactoryFactoryImpl());
         when(tarantoolClient.callForSingleResult(any(), any(), any(), any(CallResultMapper.class))).thenReturn(CompletableFuture.completedFuture(tupleResult(messageOne, messageTwo, messageThree)));
 
         List<Message> received = tarantoolTemplate.callForAll("testFunction", List.of(1, 2, 3), Message.class);

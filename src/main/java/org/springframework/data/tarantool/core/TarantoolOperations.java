@@ -1,7 +1,7 @@
 package org.springframework.data.tarantool.core;
 
 import io.tarantool.driver.api.conditions.Conditions;
-import io.tarantool.driver.mappers.ValueConverter;
+import io.tarantool.driver.mappers.converters.ValueConverter;
 import org.msgpack.value.Value;
 import org.springframework.data.tarantool.core.convert.MappingTarantoolConverter;
 import org.springframework.lang.Nullable;

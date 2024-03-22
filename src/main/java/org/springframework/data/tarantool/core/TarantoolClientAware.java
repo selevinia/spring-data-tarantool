@@ -1,13 +1,13 @@
 package org.springframework.data.tarantool.core;
 
-import io.tarantool.driver.ProxyTarantoolClient;
-import io.tarantool.driver.RetryingTarantoolClient;
 import io.tarantool.driver.TarantoolVersion;
 import io.tarantool.driver.api.TarantoolClient;
 import io.tarantool.driver.api.TarantoolResult;
+import io.tarantool.driver.api.metadata.TarantoolSpaceMetadata;
 import io.tarantool.driver.api.space.TarantoolSpaceOperations;
 import io.tarantool.driver.api.tuple.TarantoolTuple;
-import io.tarantool.driver.metadata.TarantoolSpaceMetadata;
+import io.tarantool.driver.core.ProxyTarantoolClient;
+import io.tarantool.driver.core.RetryingTarantoolClient;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.mapping.MappingException;
 import org.springframework.data.tarantool.core.mapping.UnsupportedTarantoolOperationException;

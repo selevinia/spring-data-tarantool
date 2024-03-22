@@ -1,12 +1,12 @@
 package org.springframework.data.tarantool.config.client;
 
-import io.tarantool.driver.*;
-import io.tarantool.driver.api.TarantoolClient;
-import io.tarantool.driver.api.TarantoolResult;
+import io.tarantool.driver.api.*;
+import io.tarantool.driver.api.connection.TarantoolConnectionSelectionStrategies;
+import io.tarantool.driver.api.proxy.ProxyOperationsMappingConfig;
 import io.tarantool.driver.api.tuple.TarantoolTuple;
 import io.tarantool.driver.auth.SimpleTarantoolCredentials;
-import io.tarantool.driver.core.TarantoolConnectionSelectionStrategies;
-import io.tarantool.driver.proxy.ProxyOperationsMappingConfig;
+import io.tarantool.driver.core.ClusterTarantoolTupleClient;
+import io.tarantool.driver.core.ProxyTarantoolTupleClient;
 import org.springframework.util.StringUtils;
 
 import java.net.InetSocketAddress;

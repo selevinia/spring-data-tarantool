@@ -1,17 +1,21 @@
 package org.springframework.data.tarantool.core;
 
-import io.tarantool.driver.TarantoolClientConfig;
+import io.tarantool.driver.api.TarantoolClientConfig;
 import io.tarantool.driver.api.TarantoolClient;
 import io.tarantool.driver.api.TarantoolResult;
-import io.tarantool.driver.api.TarantoolTupleResult;
+import io.tarantool.driver.api.metadata.TarantoolIndexMetadata;
+import io.tarantool.driver.api.metadata.TarantoolMetadataOperations;
+import io.tarantool.driver.api.metadata.TarantoolSpaceMetadata;
 import io.tarantool.driver.api.space.TarantoolSpaceOperations;
 import io.tarantool.driver.api.tuple.TarantoolTuple;
-import io.tarantool.driver.api.tuple.TarantoolTupleImpl;
-import io.tarantool.driver.mappers.DefaultMessagePackMapperFactory;
-import io.tarantool.driver.mappers.DefaultResultMapperFactoryFactory;
+import io.tarantool.driver.api.tuple.TarantoolTupleResult;
+import io.tarantool.driver.core.metadata.VSpaceToTarantoolSpaceMetadataConverter;
+import io.tarantool.driver.core.metadata.TarantoolIndexMetadataConverter;
+import io.tarantool.driver.core.tuple.TarantoolTupleImpl;
+import io.tarantool.driver.mappers.factories.DefaultMessagePackMapperFactory;
 import io.tarantool.driver.mappers.MessagePackMapper;
 import io.tarantool.driver.mappers.TarantoolResultMapper;
-import io.tarantool.driver.metadata.*;
+import io.tarantool.driver.mappers.factories.ResultMapperFactoryFactoryImpl;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -60,8 +64,8 @@ public class AbstractTarantoolTemplateTest {
     protected Object beforeConvertEntity;
 
     protected TarantoolResult<TarantoolTuple> tupleResult(CommonMessage... messages) {
-        DefaultResultMapperFactoryFactory resultMapperFactoryFactory = new DefaultResultMapperFactoryFactory();
-        TarantoolResultMapper<TarantoolTuple> tarantoolResultMapper = resultMapperFactoryFactory.defaultTupleResultMapperFactory().withDefaultTupleValueConverter(messagePackMapper, spaceMetadata());
+        ResultMapperFactoryFactoryImpl resultMapperFactoryFactory = new ResultMapperFactoryFactoryImpl();
+        TarantoolResultMapper<TarantoolTuple> tarantoolResultMapper = resultMapperFactoryFactory.getTarantoolTupleResultMapperFactory().withArrayValueToTarantoolTupleResultConverter(messagePackMapper, spaceMetadata());
         return tarantoolResultMapper.fromValue(tupleArrayValue(messages), TarantoolTupleResult.class);
     }
 
@@ -105,7 +109,7 @@ public class AbstractTarantoolTemplateTest {
         textFieldMap.put(ValueFactory.newString("name"), ValueFactory.newString("text"));
         textFieldMap.put(ValueFactory.newString("type"), ValueFactory.newString("string"));
 
-        TarantoolSpaceMetadataConverter converter = new TarantoolSpaceMetadataConverter(messagePackMapper);
+        VSpaceToTarantoolSpaceMetadataConverter converter = VSpaceToTarantoolSpaceMetadataConverter.getInstance();
         return converter.fromValue(ValueFactory.newArray(
                 ValueFactory.newInteger(0),         // spaceId
                 ValueFactory.newInteger(0),         // ownerId

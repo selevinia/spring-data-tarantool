@@ -1,5 +1,5 @@
 group = "io.github.selevinia"
-version = "0.3.2"
+version = "0.4.0"
 description = "Spring Data module for Tarantool Database"
 
 plugins {
@@ -35,7 +35,7 @@ dependencies {
     api("org.springframework:spring-tx:5.3.8")
     api("org.springframework:spring-context:5.3.8")
 
-    implementation("io.tarantool:cartridge-driver:0.4.3") {
+    implementation("io.tarantool:cartridge-driver:0.13.0") {
         exclude("io.netty", "netty-all")
     }
     implementation("io.projectreactor:reactor-core:3.4.7")

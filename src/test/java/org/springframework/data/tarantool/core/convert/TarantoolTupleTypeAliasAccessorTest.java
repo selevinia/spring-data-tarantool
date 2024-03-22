@@ -1,11 +1,11 @@
 package org.springframework.data.tarantool.core.convert;
 
+import io.tarantool.driver.api.metadata.TarantoolSpaceMetadata;
 import io.tarantool.driver.api.tuple.TarantoolTuple;
-import io.tarantool.driver.api.tuple.TarantoolTupleImpl;
-import io.tarantool.driver.mappers.DefaultMessagePackMapperFactory;
+import io.tarantool.driver.core.metadata.VSpaceToTarantoolSpaceMetadataConverter;
+import io.tarantool.driver.core.tuple.TarantoolTupleImpl;
 import io.tarantool.driver.mappers.MessagePackMapper;
-import io.tarantool.driver.metadata.TarantoolSpaceMetadata;
-import io.tarantool.driver.metadata.TarantoolSpaceMetadataConverter;
+import io.tarantool.driver.mappers.factories.DefaultMessagePackMapperFactory;
 import org.junit.jupiter.api.Test;
 import org.msgpack.value.Value;
 import org.msgpack.value.ValueFactory;
@@ -49,7 +49,7 @@ public class TarantoolTupleTypeAliasAccessorTest {
         testFieldMap.put(ValueFactory.newString("name"), ValueFactory.newString(testTypeKey));
         testFieldMap.put(ValueFactory.newString("type"), ValueFactory.newString("string"));
 
-        TarantoolSpaceMetadataConverter converter = new TarantoolSpaceMetadataConverter(messagePackMapper);
+        VSpaceToTarantoolSpaceMetadataConverter converter = VSpaceToTarantoolSpaceMetadataConverter.getInstance();
         return converter.fromValue(ValueFactory.newArray(
                 ValueFactory.newInteger(0),             // spaceId
                 ValueFactory.newInteger(0),             // ownerId

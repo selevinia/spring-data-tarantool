@@ -1,8 +1,8 @@
 package org.springframework.data.tarantool.core;
 
-import io.tarantool.driver.TarantoolServerAddress;
+import io.tarantool.driver.api.TarantoolServerAddress;
+import io.tarantool.driver.core.metadata.TarantoolSpaceMetadataImpl;
 import io.tarantool.driver.exceptions.*;
-import io.tarantool.driver.metadata.TarantoolSpaceMetadata;
 import org.junit.jupiter.api.Test;
 import org.msgpack.value.impl.ImmutableBinaryValueImpl;
 import org.springframework.dao.DataAccessException;
@@ -39,7 +39,7 @@ public class TarantoolExceptionTranslatorTest {
 
     @Test
     void shouldTranslateTarantoolFieldNotFoundException() {
-        DataAccessException result = et.translateExceptionIfPossible(new TarantoolFieldNotFoundException("testSpace", new TarantoolSpaceMetadata()));
+        DataAccessException result = et.translateExceptionIfPossible(new TarantoolFieldNotFoundException("testSpace", new TarantoolSpaceMetadataImpl()));
 
         assertThat(result).isInstanceOf(TarantoolDataAccessException.class)
                 .hasMessageStartingWith("Field 'testSpace' not found in space").hasCauseInstanceOf(TarantoolFieldNotFoundException.class);
@@ -71,10 +71,10 @@ public class TarantoolExceptionTranslatorTest {
 
     @Test
     void shouldTranslateTarantoolServerException() {
-        DataAccessException result = et.translateExceptionIfPossible(new TarantoolServerException(0L, "test message"));
+        DataAccessException result = et.translateExceptionIfPossible(new TarantoolInternalException("test message"));
 
         assertThat(result).isInstanceOf(TarantoolDataRetrievalException.class)
-                .hasMessageStartingWith("TarantoolServerException: code=0, message=test message").hasCauseInstanceOf(TarantoolServerException.class);
+                .hasMessageStartingWith("test message").hasCauseInstanceOf(TarantoolInternalException.class);
     }
 
     @Test

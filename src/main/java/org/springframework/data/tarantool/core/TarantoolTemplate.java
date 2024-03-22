@@ -3,14 +3,14 @@ package org.springframework.data.tarantool.core;
 import io.tarantool.driver.api.TarantoolClient;
 import io.tarantool.driver.api.TarantoolResult;
 import io.tarantool.driver.api.conditions.Conditions;
+import io.tarantool.driver.api.metadata.TarantoolSpaceMetadata;
 import io.tarantool.driver.api.space.TarantoolSpaceOperations;
 import io.tarantool.driver.api.tuple.TarantoolTuple;
 import io.tarantool.driver.api.tuple.operations.TupleOperations;
 import io.tarantool.driver.exceptions.TarantoolSpaceOperationException;
 import io.tarantool.driver.mappers.MessagePackMapper;
-import io.tarantool.driver.mappers.TarantoolTupleSingleResultMapperFactory;
-import io.tarantool.driver.mappers.ValueConverter;
-import io.tarantool.driver.metadata.TarantoolSpaceMetadata;
+import io.tarantool.driver.mappers.converters.ValueConverter;
+import io.tarantool.driver.mappers.factories.SingleValueWithTarantoolTupleResultMapperFactory;
 import org.msgpack.value.Value;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
@@ -367,9 +367,9 @@ public class TarantoolTemplate extends ExceptionTranslatorSupport implements App
         TarantoolPersistentEntity<?> entityMetadata = tarantoolConverter.getMappingContext().getPersistentEntity(entityClass);
         Optional<TarantoolSpaceMetadata> spaceMetadata = entityMetadata != null ? spaceMetadata(entityMetadata.getSpaceName()) : Optional.empty();
         if (spaceMetadata.isPresent()) {
-            TarantoolTupleSingleResultMapperFactory resultMapperFactory = tarantoolClient.getResultMapperFactoryFactory().defaultTupleSingleResultMapperFactory();
+            SingleValueWithTarantoolTupleResultMapperFactory resultMapperFactory = tarantoolClient.getResultMapperFactoryFactory().singleValueTupleResultMapperFactory();
             TarantoolResult<TarantoolTuple> result = unwrap(execute(() -> tarantoolClient.callForSingleResult(functionName, mappedTValues(parameters), messagePackMapper,
-                    resultMapperFactory.withDefaultTupleValueConverter(messagePackMapper, spaceMetadata.orElse(null)))));
+                    resultMapperFactory.withSingleValueArrayToTarantoolTupleResultMapper(messagePackMapper, spaceMetadata.orElse(null)))));
             if (result != null) {
                 return result.stream()
                         .findFirst()
@@ -419,9 +419,9 @@ public class TarantoolTemplate extends ExceptionTranslatorSupport implements App
         TarantoolPersistentEntity<?> entityMetadata = tarantoolConverter.getMappingContext().getPersistentEntity(entityClass);
         Optional<TarantoolSpaceMetadata> spaceMetadata = entityMetadata != null ? spaceMetadata(entityMetadata.getSpaceName()) : Optional.empty();
         if (spaceMetadata.isPresent()) {
-            TarantoolTupleSingleResultMapperFactory resultMapperFactory = tarantoolClient.getResultMapperFactoryFactory().defaultTupleSingleResultMapperFactory();
+            SingleValueWithTarantoolTupleResultMapperFactory resultMapperFactory = tarantoolClient.getResultMapperFactoryFactory().singleValueTupleResultMapperFactory();
             TarantoolResult<TarantoolTuple> result = unwrap(execute(() -> tarantoolClient.callForSingleResult(functionName, mappedTValues(parameters), messagePackMapper,
-                    resultMapperFactory.withDefaultTupleValueConverter(messagePackMapper, spaceMetadata.orElse(null)))));
+                    resultMapperFactory.withSingleValueArrayToTarantoolTupleResultMapper(messagePackMapper, spaceMetadata.orElse(null)))));
             if (result != null) {
                 return result.stream()
                         .map(tuple -> tupleToEntity(tuple, entityClass))
