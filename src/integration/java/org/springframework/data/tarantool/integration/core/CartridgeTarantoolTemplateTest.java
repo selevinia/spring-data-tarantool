@@ -13,4 +13,9 @@ public class CartridgeTarantoolTemplateTest extends AbstractTarantoolTemplateTes
     public TarantoolClientOptions getOptions() {
         return new CartridgeTarantoolClientOptions();
     }
+
+    @Override
+    public String getVersion() {
+        return "2.9";
+    }
 }

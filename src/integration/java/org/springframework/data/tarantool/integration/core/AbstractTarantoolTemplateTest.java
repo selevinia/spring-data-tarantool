@@ -40,6 +40,10 @@ public abstract class AbstractTarantoolTemplateTest {
 
     public abstract TarantoolClientOptions getOptions();
 
+    public String getVersion() {
+        return "2.11";
+    }
+
     @BeforeAll
     void setUp() {
         eventListener = eventListener();
@@ -62,7 +66,7 @@ public abstract class AbstractTarantoolTemplateTest {
     void shouldGetVersion() {
         TarantoolVersion version = tarantoolTemplate.getVersion();
         assertThat(version).isNotNull();
-        assertThat(version.toString()).contains("Tarantool 2.9.0");
+        assertThat(version.toString()).contains(String.format("Tarantool %s", getVersion()));
     }
 
     @Test

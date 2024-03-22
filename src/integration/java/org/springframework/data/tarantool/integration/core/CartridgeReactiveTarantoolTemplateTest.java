@@ -13,4 +13,9 @@ public class CartridgeReactiveTarantoolTemplateTest extends AbstractReactiveTara
     public TarantoolClientOptions getOptions() {
         return new CartridgeTarantoolClientOptions();
     }
+
+    @Override
+    public String getVersion() {
+        return "2.9";
+    }
 }
