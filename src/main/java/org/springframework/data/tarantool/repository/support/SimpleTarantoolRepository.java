@@ -117,6 +117,13 @@ public class SimpleTarantoolRepository<T, ID> implements TarantoolRepository<T, 
     }
 
     @Override
+    public void deleteAllById(Iterable<? extends ID> ids) {
+        Assert.notNull(ids, "The given Iterable of ids must not be null");
+
+        ids.forEach(id -> operations.deleteById(id, entityInformation.getJavaType()));
+    }
+
+    @Override
     public void deleteAll(Iterable<? extends T> entities) {
         Assert.notNull(entities, "The given Iterable of entities must not be null");
 

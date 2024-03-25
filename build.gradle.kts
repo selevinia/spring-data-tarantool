@@ -30,36 +30,36 @@ configurations["integrationCompileOnly"].extendsFrom(configurations.testCompileO
 configurations["integrationAnnotationProcessor"].extendsFrom(configurations.testAnnotationProcessor.get())
 
 dependencies {
-    api("org.springframework.data:spring-data-commons:2.4.10")
-    api("org.springframework:spring-context:5.3.8")
-    api("org.springframework:spring-tx:5.3.8")
-    api("org.springframework:spring-context:5.3.8")
+    api("org.springframework.data:spring-data-commons:2.7.18")
+    api("org.springframework:spring-context:5.3.33")
+    api("org.springframework:spring-tx:5.3.33")
+    api("org.springframework:spring-context:5.3.33")
 
     implementation("io.tarantool:cartridge-driver:0.13.0") {
         exclude("io.netty", "netty-all")
     }
-    implementation("io.projectreactor:reactor-core:3.4.7")
+    implementation("io.projectreactor:reactor-core:3.6.4")
     implementation("com.google.code.findbugs:jsr305:3.0.2")
 
-    implementation("io.netty:netty-buffer:4.1.50.Final")
-    implementation("io.netty:netty-codec:4.1.50.Final")
-    implementation("io.netty:netty-common:4.1.50.Final")
-    implementation("io.netty:netty-handler:4.1.50.Final")
-    implementation("io.netty:netty-transport:4.1.50.Final")
-    implementation("io.netty:netty-resolver-dns-native-macos:4.1.50.Final")
-    implementation("io.netty:netty-resolver-dns:4.1.50.Final")
-    implementation("io.netty:netty-transport-native-epoll:4.1.50.Final")
+    implementation("io.netty:netty-buffer:4.1.108.Final")
+    implementation("io.netty:netty-codec:4.1.108.Final")
+    implementation("io.netty:netty-common:4.1.108.Final")
+    implementation("io.netty:netty-handler:4.1.108.Final")
+    implementation("io.netty:netty-transport:4.1.108.Final")
+    implementation("io.netty:netty-resolver-dns-native-macos:4.1.108.Final")
+    implementation("io.netty:netty-resolver-dns:4.1.108.Final")
+    implementation("io.netty:netty-transport-native-epoll:4.1.108.Final")
 
-    testCompileOnly("org.projectlombok:lombok:1.18.20")
-    testAnnotationProcessor("org.projectlombok:lombok:1.18.20")
+    testCompileOnly("org.projectlombok:lombok:1.18.32")
+    testAnnotationProcessor("org.projectlombok:lombok:1.18.32")
 
-    testImplementation("org.springframework:spring-test:5.3.8")
-    testImplementation("org.junit.jupiter:junit-jupiter:5.7.2")
-    testImplementation("org.mockito:mockito-core:3.3.3")
-    testImplementation("org.mockito:mockito-junit-jupiter:3.3.3")
-    testImplementation("org.assertj:assertj-core:3.20.2")
-    testImplementation("io.projectreactor:reactor-test:3.4.7")
-    testImplementation("org.slf4j:slf4j-simple:1.7.26")
+    testImplementation("org.springframework:spring-test:5.3.33")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
+    testImplementation("org.mockito:mockito-core:5.11.0")
+    testImplementation("org.mockito:mockito-junit-jupiter:5.11.0")
+    testImplementation("org.assertj:assertj-core:3.25.3")
+    testImplementation("io.projectreactor:reactor-test:3.6.4")
+    testImplementation("org.slf4j:slf4j-simple:2.0.12")
 }
 
 tasks.withType<Test> {

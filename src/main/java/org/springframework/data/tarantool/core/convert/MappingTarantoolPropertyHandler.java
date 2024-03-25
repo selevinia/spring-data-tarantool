@@ -20,7 +20,7 @@ public class MappingTarantoolPropertyHandler implements PropertyHandler<Tarantoo
 
     @Override
     public void doWithPersistentProperty(TarantoolPersistentProperty property) {
-        if (entity.isConstructorArgument(property)) {
+        if (entity.isCreatorArgument(property)) {
             return;
         }
         Object propertyValue = provider.getPropertyValue(property);
