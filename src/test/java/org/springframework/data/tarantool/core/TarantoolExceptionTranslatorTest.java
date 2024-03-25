@@ -22,6 +22,22 @@ public class TarantoolExceptionTranslatorTest {
     }
 
     @Test
+    void shouldTranslateTarantoolAttemptsLimitException() {
+        DataAccessException result = et.translateExceptionIfPossible(new TarantoolAttemptsLimitException(5, new RuntimeException("test")));
+
+        assertThat(result).isInstanceOf(TarantoolServerConnectionException.class)
+                .hasMessageStartingWith("Attempts limit reached: 5").hasCauseInstanceOf(TarantoolAttemptsLimitException.class);
+    }
+
+    @Test
+    void shouldTranslateTarantoolTimeoutException() {
+        DataAccessException result = et.translateExceptionIfPossible(new TarantoolTimeoutException(5L, new RuntimeException("test")));
+
+        assertThat(result).isInstanceOf(TarantoolServerConnectionException.class)
+                .hasMessageStartingWith("Operation timeout value exceeded after 5 ms").hasCauseInstanceOf(TarantoolTimeoutException.class);
+    }
+
+    @Test
     void shouldTranslateTarantoolConnectionException() {
         DataAccessException result = et.translateExceptionIfPossible(new TarantoolConnectionException(new RuntimeException("test")));
 
@@ -35,6 +51,14 @@ public class TarantoolExceptionTranslatorTest {
 
         assertThat(result).isInstanceOf(TarantoolServerConnectionException.class)
                 .hasMessageStartingWith("test message").hasCauseInstanceOf(TarantoolSocketException.class);
+    }
+
+    @Test
+    void shouldTranslateTarantoolClientException() {
+        DataAccessException result = et.translateExceptionIfPossible(new TarantoolClientException("test message"));
+
+        assertThat(result).isInstanceOf(TarantoolServerConnectionException.class)
+                .hasMessageStartingWith("test message").hasCauseInstanceOf(TarantoolClientException.class);
     }
 
     @Test
@@ -54,11 +78,27 @@ public class TarantoolExceptionTranslatorTest {
     }
 
     @Test
+    void shouldTranslateTarantoolEmptyMetadataException() {
+        DataAccessException result = et.translateExceptionIfPossible(new TarantoolEmptyMetadataException());
+
+        assertThat(result).isInstanceOf(TarantoolDataAccessException.class)
+                .hasMessageStartingWith("No space metadata returned").hasCauseInstanceOf(TarantoolEmptyMetadataException.class);
+    }
+
+    @Test
     void shouldTranslateTarantoolSpaceOperationException() {
         DataAccessException result = et.translateExceptionIfPossible(new TarantoolSpaceOperationException("test message"));
 
         assertThat(result).isInstanceOf(TarantoolDataAccessException.class)
                 .hasMessageStartingWith("test message").hasCauseInstanceOf(TarantoolSpaceOperationException.class);
+    }
+
+    @Test
+    void shouldTranslateTarantoolAccessDeniedException() {
+        DataAccessException result = et.translateExceptionIfPossible(new TarantoolAccessDeniedException("test message"));
+
+        assertThat(result).isInstanceOf(TarantoolDataAccessException.class)
+                .hasMessageStartingWith("test message").hasCauseInstanceOf(TarantoolAccessDeniedException.class);
     }
 
     @Test
@@ -70,7 +110,7 @@ public class TarantoolExceptionTranslatorTest {
     }
 
     @Test
-    void shouldTranslateTarantoolServerException() {
+    void shouldTranslateTarantoolInternalException() {
         DataAccessException result = et.translateExceptionIfPossible(new TarantoolInternalException("test message"));
 
         assertThat(result).isInstanceOf(TarantoolDataRetrievalException.class)
@@ -91,6 +131,14 @@ public class TarantoolExceptionTranslatorTest {
 
         assertThat(result).isInstanceOf(TarantoolDataRetrievalException.class)
                 .hasMessageStartingWith("Index 'testIndex' is not found in space").hasCauseInstanceOf(TarantoolIndexNotFoundException.class);
+    }
+
+    @Test
+    void shouldTranslateTarantoolNoSuchProcedureException() {
+        DataAccessException result = et.translateExceptionIfPossible(new TarantoolNoSuchProcedureException("test message"));
+
+        assertThat(result).isInstanceOf(TarantoolDataRetrievalException.class)
+                .hasMessageStartingWith("test message").hasCauseInstanceOf(TarantoolNoSuchProcedureException.class);
     }
 
     @Test
