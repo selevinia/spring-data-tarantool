@@ -35,9 +35,8 @@ dependencies {
     api("org.springframework:spring-tx:5.3.33")
     api("org.springframework:spring-context:5.3.33")
 
-    implementation("io.tarantool:cartridge-driver:0.13.0") {
-        exclude("io.netty", "netty-all")
-    }
+    implementation("io.tarantool:cartridge-driver:0.13.0")
+
     implementation("io.projectreactor:reactor-core:3.6.4")
     implementation("com.google.code.findbugs:jsr305:3.0.2")
 
