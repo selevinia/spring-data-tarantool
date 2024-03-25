@@ -1,13 +1,11 @@
 package org.springframework.data.tarantool.core;
 
 import io.tarantool.driver.api.conditions.Conditions;
+import io.tarantool.driver.api.metadata.TarantoolSpaceMetadata;
 import io.tarantool.driver.api.tuple.operations.TupleOperations;
-import io.tarantool.driver.core.ProxyTarantoolTupleClient;
 import io.tarantool.driver.exceptions.TarantoolClientException;
-import io.tarantool.driver.exceptions.TarantoolSpaceOperationException;
 import io.tarantool.driver.mappers.CallResultMapper;
 import io.tarantool.driver.mappers.converters.ValueConverter;
-import io.tarantool.driver.api.metadata.TarantoolSpaceMetadata;
 import io.tarantool.driver.mappers.factories.ResultMapperFactoryFactoryImpl;
 import io.tarantool.driver.protocol.TarantoolIndexQuery;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,7 +17,6 @@ import org.springframework.data.tarantool.core.mapping.event.BeforeConvertCallba
 import org.springframework.data.tarantool.core.mapping.event.BeforeSaveCallback;
 
 import java.time.ZoneId;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -513,36 +510,14 @@ public class TarantoolTemplateTest extends AbstractTarantoolTemplateTest {
 
     @Test
     void shouldTruncate() {
-        ProxyTarantoolTupleClient client = mock(ProxyTarantoolTupleClient.class);
-        when(client.getConfig()).thenReturn(tarantoolClientConfig);
-        when(client.callForSingleResult("crud.truncate", List.of("messages"), Boolean.class)).thenReturn(CompletableFuture.completedFuture(true));
+        when(tarantoolClient.space(any())).thenReturn(spaceOperations);
+        when(spaceOperations.truncate()).thenReturn(CompletableFuture.completedFuture(null));
 
-        TarantoolTemplate template = new TarantoolTemplate(client);
-        boolean truncated = template.truncate(Message.class);
-        assertThat(truncated).isTrue();
-
-        verify(client, times(1)).callForSingleResult("crud.truncate", List.of("messages"), Boolean.class);
-    }
-
-    @Test
-    void shouldNotTruncate() {
-        ProxyTarantoolTupleClient client = mock(ProxyTarantoolTupleClient.class);
-        when(client.getConfig()).thenReturn(tarantoolClientConfig);
-        when(client.callForSingleResult("crud.truncate", List.of("messages"), Boolean.class)).thenReturn(CompletableFuture.completedFuture(false));
-
-        TarantoolTemplate template = new TarantoolTemplate(client);
-        assertThatThrownBy(() -> template.truncate(Message.class))
-                .isInstanceOf(TarantoolSpaceOperationException.class);
-
-        verify(client, times(1)).callForSingleResult("crud.truncate", List.of("messages"), Boolean.class);
-    }
-
-    @Test
-    void shouldTruncateWithDefaultClient() {
-        when(tarantoolClient.call("box.space.messages:truncate")).thenReturn(CompletableFuture.completedFuture(Collections.emptyList()));
         boolean truncated = tarantoolTemplate.truncate(Message.class);
-
         assertThat(truncated).isTrue();
+
+        verify(tarantoolClient, times(1)).space("messages");
+        verify(spaceOperations, times(1)).truncate();
     }
 
     @Test

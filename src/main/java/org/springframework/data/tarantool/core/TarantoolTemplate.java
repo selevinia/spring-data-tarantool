@@ -7,7 +7,6 @@ import io.tarantool.driver.api.metadata.TarantoolSpaceMetadata;
 import io.tarantool.driver.api.space.TarantoolSpaceOperations;
 import io.tarantool.driver.api.tuple.TarantoolTuple;
 import io.tarantool.driver.api.tuple.operations.TupleOperations;
-import io.tarantool.driver.exceptions.TarantoolSpaceOperationException;
 import io.tarantool.driver.mappers.MessagePackMapper;
 import io.tarantool.driver.mappers.converters.ValueConverter;
 import io.tarantool.driver.mappers.factories.SingleValueWithTarantoolTupleResultMapperFactory;
@@ -337,14 +336,7 @@ public class TarantoolTemplate extends ExceptionTranslatorSupport implements App
         Assert.notNull(entityClass, "Entity class must not be null");
 
         String spaceName = spaceName(entityClass);
-        if (isProxyClient()) {
-            Boolean truncated = unwrap(tarantoolClient.callForSingleResult("crud.truncate", Collections.singletonList(spaceName), Boolean.class));
-            if (!truncated) {
-                throw new TarantoolSpaceOperationException(String.format("Failed to truncate space %s", spaceName));
-            }
-        } else {
-            tarantoolClient.call(String.format("box.space.%s:truncate", spaceName));
-        }
+        unwrap(tarantoolClient.space(spaceName).truncate());
         return true;
     }
 

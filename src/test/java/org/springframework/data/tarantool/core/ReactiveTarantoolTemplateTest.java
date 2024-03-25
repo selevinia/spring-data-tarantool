@@ -1,13 +1,11 @@
 package org.springframework.data.tarantool.core;
 
 import io.tarantool.driver.api.conditions.Conditions;
+import io.tarantool.driver.api.metadata.TarantoolSpaceMetadata;
 import io.tarantool.driver.api.tuple.operations.TupleOperations;
-import io.tarantool.driver.core.ProxyTarantoolTupleClient;
 import io.tarantool.driver.exceptions.TarantoolClientException;
-import io.tarantool.driver.exceptions.TarantoolSpaceOperationException;
 import io.tarantool.driver.mappers.CallResultMapper;
 import io.tarantool.driver.mappers.converters.ValueConverter;
-import io.tarantool.driver.api.metadata.TarantoolSpaceMetadata;
 import io.tarantool.driver.mappers.factories.ResultMapperFactoryFactoryImpl;
 import io.tarantool.driver.protocol.TarantoolIndexQuery;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,7 +20,6 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.time.ZoneId;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -547,39 +544,15 @@ public class ReactiveTarantoolTemplateTest extends AbstractTarantoolTemplateTest
 
     @Test
     void shouldTruncate() {
-        ProxyTarantoolTupleClient client = mock(ProxyTarantoolTupleClient.class);
-        when(client.getConfig()).thenReturn(tarantoolClientConfig);
-        when(client.callForSingleResult("crud.truncate", List.of("messages"), Boolean.class)).thenReturn(CompletableFuture.completedFuture(true));
-
-        ReactiveTarantoolTemplate template = new ReactiveTarantoolTemplate(client);
-        template.truncate(Message.class).as(StepVerifier::create)
-                .expectNext(true)
-                .verifyComplete();
-
-        verify(client, times(1)).callForSingleResult("crud.truncate", List.of("messages"), Boolean.class);
-    }
-
-    @Test
-    void shouldNotTruncate() {
-        ProxyTarantoolTupleClient client = mock(ProxyTarantoolTupleClient.class);
-        when(client.getConfig()).thenReturn(tarantoolClientConfig);
-        when(client.callForSingleResult("crud.truncate", List.of("messages"), Boolean.class)).thenReturn(CompletableFuture.completedFuture(false));
-
-        ReactiveTarantoolTemplate template = new ReactiveTarantoolTemplate(client);
-        template.truncate(Message.class).as(StepVerifier::create)
-                .consumeErrorWith(e -> assertThat(e).isInstanceOf(TarantoolSpaceOperationException.class))
-                .verify();
-
-        verify(client, times(1)).callForSingleResult("crud.truncate", List.of("messages"), Boolean.class);
-    }
-
-    @Test
-    void shouldTruncateWithDefaultClient() {
-        when(tarantoolClient.call("box.space.messages:truncate")).thenReturn(CompletableFuture.completedFuture(Collections.emptyList()));
+        when(tarantoolClient.space(any())).thenReturn(spaceOperations);
+        when(spaceOperations.truncate()).thenReturn(CompletableFuture.completedFuture(null));
 
         reactiveTarantoolTemplate.truncate(Message.class).as(StepVerifier::create)
                 .expectNext(true)
                 .verifyComplete();
+
+        verify(tarantoolClient, times(1)).space("messages");
+        verify(spaceOperations, times(1)).truncate();
     }
 
     @Test
