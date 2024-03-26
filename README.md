@@ -15,12 +15,12 @@ from [Project Reactor](https://projectreactor.io/) like Spring WebFlux do.
 * Exception Translation to the familiar Spring DataAccessException hierarchy
 * Automatic implementation of Repository interfaces including support for custom query methods
 * Can serve as the backend for Spring @Cacheable support (**NOTE:** not supported for Tarantool Cartridge due to limitation of cartridge-driver)
-* Based on the 0.4.3 Tarantool cartridge-driver for Java
+* Based on the 0.13.0 Tarantool cartridge-driver for Java
 
 ## Tarantool compatibility
-|`spring-data-tarantool` Version | Tarantool Version
-| :----------- | :----: |
-| 0.1.x | 1.10.x, 2.x
+| `spring-data-tarantool` Version | Tarantool Version
+|:--------------------------------| :----: |
+| 0.x.x                           | 1.10.x, 2.x
 
 ## How to use in your project
 
@@ -128,9 +128,10 @@ class ApplicationConfig extends AbstractReactiveTarantoolConfiguration {
 
 ## Spring Boot
 
-|`spring-data-tarantool` Version | Spring Boot Version
-| :----------- | :----: |
-|0.x.x | 2.5.x
+| `spring-data-tarantool` Version | Spring Boot Version
+|:--------------------------------| :----: |
+| 0.x.x                           | 2.5.x
+| 0.4.x                           | 2.7.x
 
 To use Spring Data Tarantool with Spring Boot following starters may be used
 * For synchronous data operations
