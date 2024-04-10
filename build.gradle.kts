@@ -1,5 +1,5 @@
 group = "io.github.selevinia"
-version = "0.4.0"
+version = "0.5.0"
 description = "Spring Data module for Tarantool Database"
 
 plugins {
@@ -12,9 +12,13 @@ repositories {
     mavenCentral()
 }
 
-configure<JavaPluginConvention> {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
+configure<JavaPluginExtension> {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+tasks.withType<JavaCompile> {
+    options.compilerArgs.add("-parameters")
 }
 
 sourceSets {
@@ -30,10 +34,10 @@ configurations["integrationCompileOnly"].extendsFrom(configurations.testCompileO
 configurations["integrationAnnotationProcessor"].extendsFrom(configurations.testAnnotationProcessor.get())
 
 dependencies {
-    api("org.springframework.data:spring-data-commons:2.7.18")
-    api("org.springframework:spring-context:5.3.33")
-    api("org.springframework:spring-tx:5.3.33")
-    api("org.springframework:spring-context:5.3.33")
+    api("org.springframework.data:spring-data-commons:3.2.4")
+    api("org.springframework:spring-context:6.1.5")
+    api("org.springframework:spring-tx:6.1.5")
+    api("org.springframework:spring-context:6.1.5")
 
     implementation("io.tarantool:cartridge-driver:0.13.0")
 
@@ -52,7 +56,7 @@ dependencies {
     testCompileOnly("org.projectlombok:lombok:1.18.32")
     testAnnotationProcessor("org.projectlombok:lombok:1.18.32")
 
-    testImplementation("org.springframework:spring-test:5.3.33")
+    testImplementation("org.springframework:spring-test:6.1.5")
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
     testImplementation("org.mockito:mockito-core:5.11.0")
     testImplementation("org.mockito:mockito-junit-jupiter:5.11.0")
@@ -63,6 +67,11 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    jvmArgs = listOf(
+        "--add-opens=java.base/java.util=ALL-UNNAMED",
+        "--add-opens=java.base/java.math=ALL-UNNAMED",
+        "--add-opens=java.base/sun.util.locale=ALL-UNNAMED"
+    )
 }
 
 tasks.register<Test>("integrationTest") {

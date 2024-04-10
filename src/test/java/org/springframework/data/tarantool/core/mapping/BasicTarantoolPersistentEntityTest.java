@@ -9,7 +9,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Persistable;
 import org.springframework.data.mapping.Association;
 import org.springframework.data.mapping.IdentifierAccessor;
-import org.springframework.data.util.ClassTypeInformation;
+import org.springframework.data.util.TypeInformation;
 
 import java.util.UUID;
 
@@ -22,21 +22,21 @@ public class BasicTarantoolPersistentEntityTest {
 
     @Test
     void shouldInheritSpaceAnnotation() {
-        BasicTarantoolPersistentEntity<Notification> entity = new BasicTarantoolPersistentEntity<>(ClassTypeInformation.from(Notification.class));
+        BasicTarantoolPersistentEntity<Notification> entity = new BasicTarantoolPersistentEntity<>(TypeInformation.of(Notification.class));
         assertThat(entity.hasSpaceAnnotation()).isTrue();
         assertThat(entity.getSpaceName()).hasToString("messages");
     }
 
     @Test
     void shouldHasSpaceNameWithoutSpaceAnnotation() {
-        BasicTarantoolPersistentEntity<MessageWithoutSpaceAnnotation> entity = new BasicTarantoolPersistentEntity<>(ClassTypeInformation.from(MessageWithoutSpaceAnnotation.class));
+        BasicTarantoolPersistentEntity<MessageWithoutSpaceAnnotation> entity = new BasicTarantoolPersistentEntity<>(TypeInformation.of(MessageWithoutSpaceAnnotation.class));
         assertThat(entity.hasSpaceAnnotation()).isFalse();
         assertThat(entity.getSpaceName()).hasToString("messagewithoutspaceannotation");
     }
 
     @Test
     void shouldInheritPrimaryKeyClassAnnotation() {
-        BasicTarantoolPersistentEntity<NotificationId> entity = new BasicTarantoolPersistentEntity<>(ClassTypeInformation.from(NotificationId.class));
+        BasicTarantoolPersistentEntity<NotificationId> entity = new BasicTarantoolPersistentEntity<>(TypeInformation.of(NotificationId.class));
         assertThat(entity.isCompositePrimaryKeyClass()).isTrue();
     }
 
@@ -50,7 +50,7 @@ public class BasicTarantoolPersistentEntityTest {
     @Test
     @SuppressWarnings("unchecked")
     void shouldRejectAssociationCreation() {
-        BasicTarantoolPersistentEntity<Notification> entity = new BasicTarantoolPersistentEntity<>(ClassTypeInformation.from(Notification.class));
+        BasicTarantoolPersistentEntity<Notification> entity = new BasicTarantoolPersistentEntity<>(TypeInformation.of(Notification.class));
 
         assertThatThrownBy(() -> entity.addAssociation(mock(Association.class)))
                 .isInstanceOf(UnsupportedTarantoolOperationException.class);

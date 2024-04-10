@@ -10,7 +10,6 @@ import org.springframework.data.mapping.model.*;
 import org.springframework.data.tarantool.core.mapping.TarantoolMappingContext;
 import org.springframework.data.tarantool.core.mapping.TarantoolPersistentEntity;
 import org.springframework.data.tarantool.core.mapping.TarantoolPersistentProperty;
-import org.springframework.data.util.ClassTypeInformation;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.util.Assert;
 
@@ -53,7 +52,7 @@ public class MappingTarantoolReadConverter implements TarantoolReadConverter {
         TypeInformation<? extends R> typeInformation;
         PropertyValueProvider<TarantoolPersistentProperty> provider;
         if (source instanceof TarantoolTuple) {
-            typeInformation = tupleTypeMapper.readType((TarantoolTuple) source, ClassTypeInformation.from(type));
+            typeInformation = tupleTypeMapper.readType((TarantoolTuple) source, TypeInformation.of(type));
 
             Class<? extends R> rawType = typeInformation.getType();
             if (conversions.get().hasCustomReadTarget(TarantoolTuple.class, rawType)) {
@@ -67,7 +66,7 @@ public class MappingTarantoolReadConverter implements TarantoolReadConverter {
             }
         } else if (source instanceof Map) {
             Map<String, Object> map = (Map<String, Object>) source;
-            typeInformation = mapTypeMapper.readType(map, ClassTypeInformation.from(type));
+            typeInformation = mapTypeMapper.readType(map, TypeInformation.of(type));
             provider = new TarantoolMapPropertyValueProvider(map, mappingContext, mapTypeMapper, instantiators.get(), conversions.get(), conversionService);
         } else {
             throw new MappingException(String.format("Couldn't read from object of type %s", source.getClass()));

@@ -27,6 +27,7 @@ public class TarantoolRepositoryConfigurationExtension extends RepositoryConfigu
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     protected String getModulePrefix() {
         return "tarantool";
     }

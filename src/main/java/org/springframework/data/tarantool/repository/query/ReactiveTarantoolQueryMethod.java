@@ -4,10 +4,10 @@ import org.springframework.data.mapping.context.MappingContext;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.repository.core.RepositoryMetadata;
 import org.springframework.data.repository.query.QueryMethod;
-import org.springframework.data.repository.util.ReactiveWrappers;
 import org.springframework.data.tarantool.core.mapping.TarantoolPersistentEntity;
 import org.springframework.data.tarantool.core.mapping.TarantoolPersistentProperty;
 import org.springframework.data.util.Lazy;
+import org.springframework.data.util.ReactiveWrappers;
 
 import java.lang.reflect.Method;
 

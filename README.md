@@ -132,6 +132,7 @@ class ApplicationConfig extends AbstractReactiveTarantoolConfiguration {
 |:--------------------------------| :----: |
 | 0.x.x                           | 2.5.x
 | 0.4.x                           | 2.7.x
+| 0.5.x                           | 3.x.x
 
 To use Spring Data Tarantool with Spring Boot following starters may be used
 * For synchronous data operations

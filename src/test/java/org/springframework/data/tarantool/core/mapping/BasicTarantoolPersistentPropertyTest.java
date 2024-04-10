@@ -3,7 +3,7 @@ package org.springframework.data.tarantool.core.mapping;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.mapping.model.Property;
 import org.springframework.data.mapping.model.PropertyNameFieldNamingStrategy;
-import org.springframework.data.util.ClassTypeInformation;
+import org.springframework.data.util.TypeInformation;
 import org.springframework.util.ReflectionUtils;
 
 import java.time.LocalDateTime;
@@ -48,12 +48,12 @@ public class BasicTarantoolPersistentPropertyTest {
     private TarantoolPersistentProperty getPropertyFor(Class<?> type, String fieldName) {
         java.lang.reflect.Field field = ReflectionUtils.findField(type, fieldName);
 
-        return new BasicTarantoolPersistentProperty(Property.of(ClassTypeInformation.from(type), field), getEntity(type),
+        return new BasicTarantoolPersistentProperty(Property.of(TypeInformation.of(type), field), getEntity(type),
                 TarantoolSimpleTypeHolder.HOLDER, PropertyNameFieldNamingStrategy.INSTANCE);
     }
 
     private <T> BasicTarantoolPersistentEntity<T> getEntity(Class<T> type) {
-        return new BasicTarantoolPersistentEntity<>(ClassTypeInformation.from(type));
+        return new BasicTarantoolPersistentEntity<>(TypeInformation.of(type));
     }
 
     private static class Timeline {

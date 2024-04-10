@@ -11,7 +11,6 @@ import org.springframework.data.tarantool.core.mapping.BasicTarantoolPersistentE
 import org.springframework.data.tarantool.core.mapping.TarantoolMappingContext;
 import org.springframework.data.tarantool.core.mapping.TarantoolPersistentEntity;
 import org.springframework.data.tarantool.core.mapping.TarantoolPersistentProperty;
-import org.springframework.data.util.ClassTypeInformation;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -148,7 +147,7 @@ public class MappingTarantoolWriteConverter implements TarantoolWriteConverter {
     }
 
     private Object getNonSimpleValueToWrite(Object value, TypeInformation<?> type) {
-        TypeInformation<?> valueType = ClassTypeInformation.from(value.getClass());
+        TypeInformation<?> valueType = TypeInformation.of(value.getClass());
         if (valueType.isCollectionLike()) {
             return convertCollection(asCollection(value), type);
         } else if (valueType.isMap()) {
@@ -239,7 +238,7 @@ public class MappingTarantoolWriteConverter implements TarantoolWriteConverter {
     private TypeInformation<?> getTypeInformation(Class<?> cls) {
         TarantoolPersistentEntity<?> entity = mappingContext.getPersistentEntity(cls);
         if (entity == null) {
-            return ClassTypeInformation.from(cls);
+            return TypeInformation.of(cls);
         } else {
             return entity.getTypeInformation();
         }
